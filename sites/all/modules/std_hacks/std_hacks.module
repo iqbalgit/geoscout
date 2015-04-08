@@ -31,7 +31,7 @@ function std_hacks_menu() {
 }
 
 /**
- * Implementation of hook_menu_alter()
+ * Implementation of hook_menu_alter() but in use now
 
  */
 function std_hacks_menu_alter(&$items) {
