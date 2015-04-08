@@ -1,0 +1,1259 @@
+<?php
+
+/* hook_menu implementation*/
+
+function std_hacks_menu() {
+	$items['mobile/user/auth'] = array(
+        'title' => t('Mobile App User Authentication'),
+		'page callback' => array('mobile_auth'),
+		'access callback' => TRUE,
+		'delivery callback' => 'drupal_json_output',
+	);
+	$items['app/version'] = array(
+        'title' => t('Mobile App version'),
+		'page callback' => array('app_version'),
+		'access callback' => TRUE,
+		'delivery callback' => 'drupal_json_output',
+	);
+	$items['record/test'] = array(
+        'title' => t('Test'),
+		'page callback' => array('test_debug'),
+		'access callback' => TRUE,
+		//'delivery callback' => 'drupal_json_output',
+	);
+	$items['record/test/loc'] = array(
+        'title' => t('Test'),
+		'page callback' => array('loc_test'),
+		'access callback' => TRUE,
+		//'delivery callback' => 'drupal_json_output',
+	);
+	return $items;
+}
+
+/**
+ * Implementation of hook_menu_alter()
+
+ */
+function std_hacks_menu_alter(&$items) {
+  // Removing certain local navigation tabs that are either undesired or need to be custom relocated.
+
+  // Set these tabs to MENU_CALLBACK, so they still register the path, but just don't show the tab:
+ // $items['node/%node/devel']['type'] = MENU_CALLBACK;
+  
+  // Fully unset these tabs and their paths, don't want them at all. This breaks the path as well:
+  //unset($items['node/%node/devel']);
+}
+
+function test_debug() {
+	$get_json_updated_zone = drupal_http_request("http://webservice.dtdc.com:8084/geotagtest/tab/dtdc/getzone");
+	$get_json_updated_zone_data = json_decode($get_json_updated_zone->data, true);
+	if($get_json_updated_zone_data['STATUS'] == 1) {
+		foreach($get_json_updated_zone_data['ZONEDETAILS'] as $key => $zone_detail) {
+			$facility_code = $zone_detail['ZO_CODE'];
+			if(isset($facility_code)) {
+				$nid = db_query('SELECT nid FROM {node} where type = :type AND title = :fc_code', array(':type' => 'zonal_master', ':fc_code' => $facility_code))->fetchField();
+				if($nid) {
+					dpm($nid);
+					$result = node_type_update($nid, $zone_detail, 'Zone');
+				}
+			}
+		}
+	}
+	return 'foo';
+}
+function std_hacks_cronapi($op, $job = NULL) {
+	$items['update_geotag_branch_node_cron'] = array(
+		'description' => 'Cron to update geo tag branch node against DTDC live DB record update',
+		'rule' => '0 */6 * * *', // Every 6 hours
+		//'rule' => '*/10 * * * *', // Every 15 min
+	);
+	$items['update_geotag_fr_node_cron'] = array(
+		'description' => 'Cron to update geo tag fr node against DTDC live DB record update',
+		'rule' => '0 */6 * * *', // Every 6 hours
+		//'rule' => '*/10 * * * *', // Every 15 min
+	);
+	$items['update_geotag_ccc_node_cron'] = array(
+		'description' => 'Cron to update geo tag ccc node against DTDC live DB record update',
+		'rule' => '0 */6 * * *', // Every 6 hours
+	);
+	$items['update_geotag_zone_node_cron'] = array(
+		'description' => 'Cron to update geo tag zone node against DTDC live DB record update',
+		'rule' => '0 */10 * * *', // Every 6 hours
+	);
+	$items['update_geotag_region_node_cron'] = array(
+		'description' => 'Cron to update geo tag region node against DTDC live DB record update',
+		'rule' => '0 */10 * * *', // Every 6 hours
+	);
+	$items['update_drupal_user_cron'] = array(
+		'description' => 'Cron to create/update a drupal user',
+		'rule' => '0 */10 * * *', // Every 6 hours
+		//'rule' => '*/15 * * * *', // Every 15 min
+	);
+	$items['update_mobile_user_node_cron'] = array(
+		'description' => 'Cron to create/update a mobile user',
+		'rule' => '0 */10 * * *', // Every 6 hours
+		//'rule' => '*/15 * * * *', // Every 15 min
+	);
+	return $items;
+}
+
+function update_geotag_branch_node_cron() { // To update branch record 
+	$get_json_updated_branch = drupal_http_request("http://webservice.dtdc.com:8084/geotagtest/tab/dtdc/branchval");
+	$get_json_updated_branch_data = json_decode($get_json_updated_branch->data, true);
+	if($get_json_updated_branch_data['STATUS'] == 1) {
+		foreach($get_json_updated_branch_data['BRANCHDETAILS'] as $key => $branch_detail) {
+			$facility_code = $branch_detail['BRANCH_CODE'];
+			if(isset($facility_code)) {
+				$nid = db_query('SELECT nid FROM {node} where type = :type AND title = :fc_code', array(':type' => 'geo_tag', ':fc_code' => $facility_code))->fetchField();
+				if($nid) {
+					$result = node_type_update($nid, $branch_detail, 'Branch');
+				}
+			}
+		}
+	}
+}
+
+function update_geotag_fr_node_cron() { // To update franchise record
+	$get_json_updated_fr = drupal_http_request("http://webservice.dtdc.com:8084/geotagtest/tab/dtdc/frval");
+	$get_json_updated_fr_data = json_decode($get_json_updated_fr->data, true);
+	if($get_json_updated_fr_data['STATUS'] == 1) {
+		foreach($get_json_updated_fr_data['FRDETAILS'] as $key => $fr_detail) {
+			$facility_code = $fr_detail['FR_CODE'];
+			if(isset($facility_code)) {
+				$nid = db_query('SELECT nid FROM {node} where type = :type AND title = :fc_code', array(':type' => 'geo_tag', ':fc_code' => $facility_code))->fetchField();
+				if($nid) {
+					$result = node_type_update($nid, $fr_detail, 'Franchise');
+				}
+			}
+		}
+	}
+}
+
+function update_geotag_ccc_node_cron() { // To update cash collection record
+	$get_json_updated_ccc = drupal_http_request("http://webservice.dtdc.com:8084/geotagtest/tab/dtdc/cccval");
+	$get_json_updated_ccc_data = json_decode($get_json_updated_ccc->data, true);
+	if($get_json_updated_ccc_data['STATUS'] == 1) {
+		foreach($get_json_updated_ccc_data['CCCDETAILS'] as $key => $ccc_detail) {
+			$facility_code = $ccc_detail['CCC_CODE'];
+			if(isset($facility_code)) {
+				$nid = db_query('SELECT nid FROM {node} where type = :type AND title = :fc_code', array(':type' => 'geo_tag', ':fc_code' => $facility_code))->fetchField();
+				if($nid) {
+					$result = node_type_update($nid, $ccc_detail, 'CCC');
+				}
+			}
+		}
+	}
+	//watchdog('std_hacks', check_plain(print_r($get_json_updated_ccc_data, true)));
+}
+
+function update_geotag_zone_node_cron() { // To update zonal record
+	$get_json_updated_zone = drupal_http_request("http://webservice.dtdc.com:8084/geotagtest/tab/dtdc/getzone");
+	$get_json_updated_zone_data = json_decode($get_json_updated_zone->data, true);
+	if($get_json_updated_zone_data['STATUS'] == 1) {
+		foreach($get_json_updated_zone_data['ZONEDETAILS'] as $key => $zone_detail) {
+			$facility_code = $zone_detail['ZO_CODE'];
+			if(isset($facility_code)) {
+				$nid = db_query('SELECT nid FROM {node} where type = :type AND title = :fc_code', array(':type' => 'zonal_master', ':fc_code' => $facility_code))->fetchField();
+				if($nid) {
+					$result = node_type_update($nid, $zone_detail, 'Zone');
+				}
+			}
+		}
+	}
+	//watchdog('std_hacks', check_plain(print_r($get_json_updated_ccc_data, true)));
+}
+
+function update_geotag_region_node_cron() { // To update cash collection record
+	$get_json_updated_region = drupal_http_request("http://webservice.dtdc.com:8084/geotagtest/tab/dtdc/getro");
+	$get_json_updated_region_data = json_decode($get_json_updated_region->data, true);
+	if($get_json_updated_region_data['STATUS'] == 1) {
+		foreach($get_json_updated_region_data['RODETAILS'] as $key => $ro_detail) {
+			$facility_code = $ro_detail['RO_CODE'];
+			if(isset($facility_code)) {
+				$nid = db_query('SELECT nid FROM {node} where type = :type AND title = :fc_code', array(':type' => 'regional_master', ':fc_code' => $facility_code))->fetchField();
+				if($nid) {
+					$result = node_type_update($nid, $ro_detail, 'Region');
+				}
+			}
+		}
+	}
+	//watchdog('std_hacks', check_plain(print_r($get_json_updated_ccc_data, true)));
+}
+
+function update_drupal_user_cron() { // Drupal approver user 
+	$get_json_updated_drupal_auth = drupal_http_request("http://webservice.dtdc.com:8084/geotagtest/tab/dtdc/drupal");
+	$get_json_updated_drupal_auth_data = json_decode($get_json_updated_drupal_auth->data, true);
+	if($get_json_updated_drupal_auth_data['STATUS'] == 1) {
+		foreach($get_json_updated_drupal_auth_data['DRUPAL'] as $key => $drupal_user_detail) {
+			$emp_id = $drupal_user_detail['EMP_CODE'];
+			if(isset($emp_id)) {
+				$uid = db_query('SELECT uid FROM {users} where name = :emp_id', array(':emp_id' => $emp_id))->fetchField();
+				if($uid) {
+					$result = user_update($uid, $drupal_user_detail, 'drupal_user');
+				}
+				else {
+					$result = user_create('drupal', $drupal_user_detail); // Create Drupal user if not persent on drupal.
+				}
+			}
+		}
+	}
+}
+function update_mobile_user_node_cron() {
+	$get_json_updated_mobile_auth = drupal_http_request("http://webservice.dtdc.com:8084/geotagtest/tab/dtdc/mobile");
+	$get_json_updated_mobile_auth_data = json_decode($get_json_updated_mobile_auth->data, true);
+	if($get_json_updated_mobile_auth_data['STATUS'] == 1) {
+		//dpm($get_json_updated_mobile_auth_data);
+		foreach($get_json_updated_mobile_auth_data['MOBILE'] as $key => $mobile_user_detail) {
+			$emp_id = $mobile_user_detail['EMP_CODE'];
+			if($emp_id) {
+				$nid = db_query('SELECT nid FROM {node} where type = :type AND title = :emp_id', array(':type' => 'mobile_user', ':emp_id' => $emp_id))->fetchField();
+				if($nid) {
+					$result = user_update($nid, $mobile_user_detail, 'mobile_user');
+				}
+				else {
+					$result = user_create('mobile', $mobile_user_detail); // Create Mobile user(node) - if EMP_CODE not persent on drupal.
+				}
+				
+			}
+		}
+	}
+	//watchdog('get_update_geo_tag_debug', 'Cron function triggered');
+}
+
+/* Menu call back for app version*/
+function app_version() {
+	return array('version' => 3.2);
+}
+
+
+function mobile_auth() {
+	$login_id = $_REQUEST['loginid'];
+	$password = $_REQUEST['imei'];
+	if(isset($login_id) && isset($password)) {
+		//$nid = db_query("SELECT n.nid FROM {node} n JOIN {field_data_field_password} p ON p.entity_id = n.nid WHERE n.title = :login_id AND p.field_password_value = :imei AND n.type = :type", array(':login_id' => $login_id, ':imei' => $password, ':type' => 'mobile_user'))->fetchField();
+		$nid = db_query("SELECT nid FROM {node} WHERE title = :login_id", array(':login_id' => $login_id))->fetchField();
+		if($nid) {
+			$node = is_numeric($nid) ? node_load($nid) : FALSE;
+			$access_type = $node->field_access_type['und'][0]['value'];
+			$access_codes = $node->field_access_code['und'][0]['value'];
+			$status = $node->field_status['und'][0]['value'];
+			$name = $node->field_name['und'][0]['value'];
+			$created_by = $login_id.','.$name;
+			if(isset($access_type) && isset($access_codes) && isset($status)) {
+				$loc_details = access_based_location($access_type, $access_codes, $status);
+				//$unsynced_loc_details = access_based_location($access_type, $access_codes, $status); // All unsynced locations
+				//$synced_loc_details = access_based_location_test($access_type, $access_codes, $status, $created_by); // All synced locations according to created by mobile user
+				//$key = array_search($created_by, array_column($unsynced_loc_details, 'created_by'));
+				//$unsynced_locs = unset_array_by_id($created_by, $unsynced_loc_details);
+				//$loc_details = array_merge($synced_loc_details, $unsynced_locs); // All locations for mobile user
+				//$all = array_unique($loc_details, SORT_REGULAR);
+				$output['response'] = array('LGNID' => $login_id, 'NAME' => $name, 'ACCSTYPE' => $access_type, 'ACCSCODE' => $access_codes, 'REMARKS' => 'Succesfull', 'LOCATIONS' => $loc_details, 'STATUS' => $status);
+			}
+			else {
+				$output['response'] = array('LGNID' => $login_id, 'REMARKS' => 'No location');
+			}
+		}
+		else {
+			$output['response'] = array('LGNID' => $login_id, 'REMARKS' => 'Invalid Login ID/IMEI');
+		}
+	}
+	else {
+		$output['response'] = array('LGNID' => $login_id, 'REMARKS' => 'Invalid Login ID/IMEI');
+	}
+	//return 'foo';
+	return $output;
+}
+
+/* Utility function to unset the unsynced locations if created_by set*/
+function unset_array_by_id($id, $array) {
+	foreach($array as $key => $val) {
+		if(isset($val['created_by'])) {
+			unset($array[$key]); // Unset all the array which has created_by value
+		}
+   }
+   return $array;
+}
+
+/* Implemented hook_form_alter */
+
+function std_hacks_form_alter(&$form, &$form_state, $form_id) {
+	//dpm($form_state);
+	global $user;
+	$admin = is_admin();
+	if($form_id == 'geo_tag_node_form') {
+		 if(!$admin) {
+			$form['field_context']['#prefix'] = '<div style="display:none;">';
+			$form['field_context']['#suffix'] = '</div>';
+			$form['field_type_of_location']['#prefix'] = '<div style="display:none;">';
+			$form['field_type_of_location']['#suffix'] = '</div>';
+			$form['field_updated_by_mobile']['#prefix'] = '<div style="display:none;">';
+			$form['field_updated_by_mobile']['#suffix'] = '</div>';
+			$form['field_reporting_office_type']['#prefix'] = '<div style="display:none;">';
+			$form['field_reporting_office_type']['#suffix'] = '</div>';
+			$form['field_reporting_office_code']['#prefix'] = '<div style="display:none;">';
+			$form['field_reporting_office_code']['#suffix'] = '</div>';
+			$form['field_location_status']['#prefix'] = '<div style="display:none;">';
+			$form['field_location_status']['#suffix'] = '</div>';
+			$form['field_location_closed']['#prefix'] = '<div style="display:none;">';
+			$form['field_location_closed']['#suffix'] = '</div>';
+			$form['field_phone_number2']['#prefix'] = '<div style="display:none;">';
+			$form['field_phone_number2']['#suffix'] = '</div>';
+			$form['field_phone_number3']['#prefix'] = '<div style="display:none;">';
+			$form['field_phone_number3']['#suffix'] = '</div>';
+			$form['field_mobile_number']['#prefix'] = '<div style="display:none;">';
+			$form['field_mobile_number']['#suffix'] = '</div>';
+			$form['field_state_code']['#prefix'] = '<div style="display:none;">';
+			$form['field_state_code']['#suffix'] = '</div>';
+			$form['field_city_code']['#prefix'] = '<div style="display:none;">';
+			$form['field_city_code']['#suffix'] = '</div>';
+			$form['field_edited_on_mobile']['#prefix'] = '<div style="display:none;">';
+			$form['field_edited_on_mobile']['#suffix'] = '</div>';
+			$form['field_updated_on_mobile']['#prefix'] = '<div style="display:none;">';
+			$form['field_updated_on_mobile']['#suffix'] = '</div>';
+			//$form['field_country']['#prefix'] = '<div style="display:none;">';
+			//$form['field_country']['#suffix'] = '</div>';
+		}
+		//$form['field_reporting_office_code']['#disabled'] = TRUE;
+		//$form['field_city']['#disabled'] = TRUE;
+		//$form['field_state']['#disabled'] = TRUE;
+		//$form['field_postal_code']['#disabled'] = TRUE;
+		//$form['field_country']['#disabled'] = TRUE;
+		$form['actions']['submit']['#value'] = t('Approve');
+		$form['actions']['submit']['#submit'][] = 'custom_form_submit';
+		if(in_array('Approver', $user->roles)) {
+			$form['#validate'][] = 'geo_tag_form_validate';
+			$form['actions']['submit']['#submit'][] = 'custom_form_submit';
+		}
+		if(arg(1) == 'add') {
+			// If adding node link to node/add screen
+			$destination = 'node/add';
+		}
+		elseif(arg(2) == 'edit') {
+			// If editing node, link to node view screen
+			$destination = 'node/'.arg(1);
+		}
+		$form['actions']['cancel'] = array(
+			'#markup' => isset($destination) ? l(t('Cancel'), $destination) : FALSE,
+			'#weight' => 20,
+		);
+		/*$form['actions']['reject'] = array(
+			'#type' => 'submit',
+			'#value' => 'Reject',
+			//'#markup' => isset($destination) ? l(t('Reject'), $destination) : FALSE,
+			//'#weight' => 20,
+			'#submit' => array(
+			// Adds the existing form submit function from the regular "Save" button
+			$form['buttons']['submit']['#submit'][0],
+			// Add our custom function which will redirect to the node/add/child form
+			'addmore_add_another',
+      ),
+		);*/
+		//$form['reject']['#submit'] = $form['#submit'];
+		//$form['reject']['#submit'][] = 'reject_callback';
+	}
+}
+
+function custom_form_submit($form, &$form_state) {
+	dpm($form_state);
+	//$form_state['redirect'] = 'app-loc';
+	//exit;
+}
+
+function geo_tag_form_validate($form, &$form_state) {
+	$email = $form_state['values']['field_email']['und'][0]['value'];
+	if(strpos($email,'dtdc.com') == false) {
+		form_set_error('field_email', t('Please enter correct dtdc email'));
+	}
+	$lat = $form_state['values']['field_location']['und'][0]['lat'];
+	$long = $form_state['values']['field_location']['und'][0]['lng'];
+	$postalcode = $form_state['values']['field_postal_code']['und'][0]['value'];
+	$distance = getdistance($postalcode, $lat, $long);
+	if($distance > 1) {
+		form_set_error('field_location', t('Please correct lat, long on map'));
+	}
+	return;
+}
+
+/* if user role is approver then call webservices to add old/new location to DTDC live DB and publish the content*/
+
+function std_hacks_node_presave($node) {
+	global $user;
+	$created_by = isset($node->field_created_by['und'][0]['value']) ? $node->field_created_by['und'][0]['value'] : FALSE;
+	$admin = is_admin();
+	if($node->is_new && !$admin) { // Check if new location node, if yes assign reporting office type and code
+		$mobile_user_access = get_access_type_code($node, $created_by);
+		//watchdog('std_hacks', check_plain(print_r($mobile_user_access, true)));
+		$node->field_reporting_office_type['und'][0]['value'] = $mobile_user_access['type'];
+		$node->field_reporting_office_code['und'][0]['value'] = $mobile_user_access['code'];
+    }
+	$location_code = isset($node->title) ? $node->title : FALSE;
+	$location_name = isset($node->field_facility_name['und'][0]['value']) ? urlencode($node->field_facility_name['und'][0]['value']) : 'No-name';
+	$email = isset($node->field_email['und'][0]['value']) ? urlencode($node->field_email['und'][0]['value']) : 'No-name';
+	$latitude = isset($node->field_location['und'][0]['lat']) ? $node->field_location['und'][0]['lat'] : '28.49702';
+	$longitude = isset($node->field_location['und'][0]['lng']) ? $node->field_location['und'][0]['lng'] : '77.08555';
+	$open_hour = isset($node->field_opening_hours['und'][0]['value']) ? $node->field_opening_hours['und'][0]['value'] : 0;
+	$add1 = isset($node->field_address_1['und'][0]['value']) ? urlencode($node->field_address_1['und'][0]['value']) : FALSE;
+	$add2 = isset($node->field_address_2['und'][0]['value']) ? urlencode($node->field_address_2['und'][0]['value']) : FALSE;
+	$city = isset($node->field_city['und'][0]['value']) ? urlencode($node->field_city['und'][0]['value']) : 'None';
+	//$city = isset($node->field_city_code['und'][0]['value']) ? urlencode($node->field_city_code['und'][0]['value']) : 'None';
+	$landmark = isset($node->field_landmark['und'][0]['value']) ? urlencode($node->field_landmark['und'][0]['value']) : 'NA';
+	$state = isset($node->field_state['und'][0]['value']) ? urlencode($node->field_state['und'][0]['value']) : 'NA';
+	//$state = isset($node->field_state_code['und'][0]['value']) ? urlencode($node->field_state_code['und'][0]['value']) : 'NA';
+	$country = isset($node->field_country['und'][0]['value']) ? urlencode($node->field_country['und'][0]['value']) : 'IND';
+	$postalcode = isset($node->field_postal_code['und'][0]['value']) ? urlencode($node->field_postal_code['und'][0]['value']) : 123;
+	$contact_person = isset($node->field_contact_person['und'][0]['value']) ? urlencode($node->field_contact_person['und'][0]['value']) : FALSE;
+	$opening_hours = str_replace(':', '', $open_hour); 
+	$close_hour = isset($node->field_closing_hours['und'][0]['value']) ? $node->field_closing_hours['und'][0]['value'] : 0;
+	$closing_hours = str_replace(':', '', $close_hour);
+	//$closing_days = isset($node->field_closing_days['und']) ? sizeof($node->field_closing_days['und']) : 2;
+	if(isset($node->field_closing_days['und'])) {
+		$closing_days_number = array();
+		foreach($node->field_closing_days['und'] as $key => $closing_day) {
+			$closing_days_number[] = closing_days_map($closing_day);
+		}
+		$closing_days = implode(',', $closing_days_number);
+	}
+	$apecial_remarks = isset($node->body['und'][0]['value']) ? urlencode($node->body['und'][0]['value']) : 'Unavailable';
+	$parkingavl = isset($node->field_parking_available['und'][0]['value']) ? $node->field_parking_available['und'][0]['value'] : 'no';
+	if($parkingavl == 'yes') {
+		$parkingavl = 'Y';
+	}
+	else {
+		$parkingavl = 'N';
+	}
+	$cctv = isset($node->field_cctv['und'][0]['value']) ? $node->field_cctv['und'][0]['value'] : 'no';
+	if($cctv == 'yes') {
+		$cctv = 'Y';
+	}
+	else {
+		$cctv = 'N';
+	}
+	$officeflr  = isset($node->field_office_floor['und'][0]['value']) ? floor_map($node->field_office_floor['und'][0]['value']) : FALSE;
+	$shoparea = isset($node->field_shop_area['und'][0]['value']) ? $node->field_shop_area['und'][0]['value'] : 0;
+	$storage_space = isset($node->field_pudo_storage_space['und'][0]['value']) ? $node->field_pudo_storage_space['und'][0]['value'] : 0;
+	$no_of_emp = isset($node->field_no_of_employees['und'][0]['value']) ? $node->field_no_of_employees['und'][0]['value'] : 0;
+	$fid1 = isset($node->field_geo_image['und'][0]['fid']) ? $node->field_geo_image['und'][0]['fid'] : NULL;
+	$fid2 = isset($node->field_geo_image['und'][1]['fid']) ? $node->field_geo_image['und'][1]['fid'] : NULL;
+	$fid3 = isset($node->field_geo_image['und'][2]['fid']) ? $node->field_geo_image['und'][2]['fid'] : NULL;
+	$file1 = isset($fid1) ? file_load($fid1) : FALSE;
+	$file2 = isset($fid2) ? file_load($fid2) : FALSE;
+	$file3 = isset($fid3) ? file_load($fid3) : FALSE;
+	$image1 = isset($file1->uri) ? file_create_url($file1->uri) : '2fs0';
+	$image2 = isset($file2->uri) ? file_create_url($file2->uri) : '2fs0';
+	$image3 = isset($file3->uri) ? file_create_url($file3->uri) : '2fs0';
+	$approvedby = isset($user->name) ? $user->name : 'None';
+	$phone_number = isset($node->field_phone_number['und'][0]['value']) ? urlencode($node->field_phone_number['und'][0]['value']) : '2342342';
+	$phone_number2 = isset($node->field_phone_number2['und'][0]['value']) ? $node->field_phone_number2['und'][0]['value'] : '123456';
+	$phone_number3 = isset($node->field_phone_number3['und'][0]['value']) ? $node->field_phone_number3['und'][0]['value'] : '4567898';
+	$mobile_number = isset($node->field_mobile_number['und'][0]['value']) ? $node->field_mobile_number['und'][0]['value'] : '8347628346';
+	$current_date = date("Y-m-d");
+	if($user->uid != 0 && $user->roles[4] == 'Approver') {
+		switch($node->field_context['und'][0]['value']) {
+			case 'existing location':
+				$add_existing_location = 'http://webservice.dtdc.com:8084/geotagtest/rest/dtdc/approveoldlocation?locncode='.$location_code.'&lattitude='.$latitude.'&longitude='.$longitude.'&openinghr='.$opening_hours.'&closinghr='.$closing_hours.'&closingdays='.$closing_days.'&splinformation='.$apecial_remarks.'&approvedby='.$approvedby.'&prkngavl='.$parkingavl.'&cctvavl='.$cctv.'&offflr='.$officeflr.'&shoparea='.$shoparea.'&pudostrgspace='.$storage_space.'&noofemp='.$no_of_emp.'&locimg1='.$image1.'&locimg2='.$image2.'&locimg3='.$image3.'&lphone='.$phone_number.'&phone2='.$phone_number2.'&phone3='.$phone_number3.'&mobile='.$mobile_number.'&locappvdon='.$current_date.'&add1='.$add1.'&add2='.$add2.'&email='.$email.'&landmark='.$landmark.'&cntctprsn='.$contact_person.'';
+				//dpm($add_existing_location);
+				//$json_add_existing_location = drupal_http_request($add_existing_location);
+				//dpm($json_add_existing_location);
+				$json_add_existing_location_data = json_decode($json_add_existing_location->data, true);
+			break;
+			case 'new location':
+				$add_new_location = 'http://webservice.dtdc.com:8084/geotagtest/rest/dtdc/newlocation?lcode='.$node->nid.'&lname='.$location_name.'&ladd1='.$add1.'&ladd2='.$add2.'&llndmrk='.$landmark.'&lpostcode='.$postalcode.'&lphone='.$phone_number.'&lfax=112233&lemail='.$email.'&lcntctprsn='.$contact_person.'&llat='.$latitude.'&llong='.$longitude.'&lcityname='.$city.'&luser=C10171&openinghr='.$opening_hours.'&closinghr='.$closing_hours.'&closingdays='.$closing_days.'&splinformation='.$apecial_remarks.'&prkngavl='.$parkingavl.'&cctvavl='.$cctv.'&offflr='.$officeflr.'&shoparea='.$shoparea.'&pudostrgspace='.$storage_space.'&noofemp='.$no_of_emp.'&locimg1='.$image1.'&locimg2='.$image2.'&locimg3='.$image3.'&phone2='.$phone_number2.'&phone3='.$phone_number3.'&mobile='.$mobile_number.'&locappvdon='.$current_date.'&locappvdby='.$approvedby.'&state='.$state.'&country='.$country.'';
+				$json_add_new_location = drupal_http_request($add_new_location);
+				$json_add_new_location_data = json_decode($json_add_new_location->data, true);
+			break;
+		}
+		if((isset($json_add_new_location_data['STATUS']) && $json_add_new_location_data['STATUS'] == 1) || (isset($json_add_existing_location_data['STATUS']) && $json_add_existing_location_data['STATUS'] == 1)) {
+			$node->status = 1; // Approving the node once it will be saved by approver/.
+		}
+	}
+}
+
+//Utility function to get role basesd access on location(Branches, Franchise, Cash collection)
+function access_based_location($access_type, $access_codes, $status) {
+	if(isset($status) && $status == 'A') {
+		switch($access_type) {
+			case '1': //User have zone level access(access_code will be the zo_code/zonal code)
+				$ro_codes = get_regional_codes($access_codes); // Calling utility function to get ro_codes against zonal code
+				$branch_locations = get_branches($ro_codes); // Calling utility function to get all branches against ro_codes(Regional code)
+				$franchise_cc = get_fr_cc_locations($branch_locations); // Calling utility function to get all franchise & cc against branch code
+				$total_locations = array_merge($branch_locations, $franchise_cc); // Combining branch locations + frcc locations related to branchases
+				//dpm($total_locations);
+			break;
+			case '2': //User have region level access(access_code will be the ro_code/regional code)
+				$branch_locations = get_branches($access_codes); // (Here $access_code == $ro_codes)Calling utility function to get all branches against ro_codes(Regional code)
+				$franchise_cc = get_fr_cc_locations($branch_locations); // Calling utility function to get all franchise & cc against branch code
+				$total_locations = array_merge($branch_locations, $franchise_cc); // Combining branch locations + frcc locations related to branchases
+			break;
+			case '3': //User have branch level access
+				$branch_query = db_query("SELECT n.title, n.nid, fc.field_facility_name_value, tloc.field_type_of_location_tid, email.field_email_value, add1.field_address_1_value, add2.field_address_2_value, city.field_city_value, state.field_state_value, postal.field_postal_code_value, country.field_country_value, phone.field_phone_number_value, employee.field_no_of_employees_value, floor.field_office_floor_value, openhr.field_opening_hours_value, closehr.field_closing_hours_value, parking.field_parking_available_value, cctv.field_cctv_value, closingdays.field_closing_days_value, synced.field_updated_by_mobile_value, context.field_context_value, edited_mobile.field_edited_on_mobile_value, loc.field_location_lat, loc.field_location_lng, cr.field_created_by_value, land.field_landmark_value, shop.field_shop_area_value, pudo.field_pudo_storage_space_value, remarks.body_value FROM {node} n JOIN {field_data_field_facility_name} fc ON n.nid = fc.entity_id JOIN {field_data_field_reporting_office_code} roc ON n.nid = roc.entity_id LEFT JOIN {field_data_field_type_of_location} tloc ON n.nid = tloc.entity_id LEFT JOIN {field_data_field_email} email ON n.nid = email.entity_id LEFT JOIN {field_data_field_address_1} add1 ON n.nid = add1.entity_id LEFT JOIN {field_data_field_address_2} add2 ON n.nid = add2.entity_id LEFT JOIN {field_data_field_city} city ON n.nid = city.entity_id LEFT JOIN {field_data_field_state} state ON n.nid = state.entity_id LEFT JOIN {field_data_field_postal_code} postal ON n.nid = postal.entity_id LEFT JOIN {field_data_field_country} country ON n.nid = country.entity_id LEFT JOIN {field_data_field_phone_number} phone ON n.nid = phone.entity_id LEFT JOIN {field_data_field_no_of_employees} employee ON n.nid = employee.entity_id LEFT JOIN {field_data_field_office_floor} floor ON n.nid = floor.entity_id LEFT JOIN {field_data_field_opening_hours} openhr ON n.nid = openhr.entity_id LEFT JOIN {field_data_field_closing_hours} closehr ON n.nid = closehr.entity_id LEFT JOIN {field_data_field_parking_available} parking ON n.nid = parking.entity_id LEFT JOIN {field_data_field_cctv} cctv ON n.nid = cctv.entity_id LEFT JOIN {field_data_field_closing_days} closingdays ON n.nid = closingdays.entity_id LEFT JOIN {field_data_field_updated_by_mobile} synced ON n.nid = synced.entity_id LEFT JOIN {field_data_field_context} context ON n.nid = context.entity_id LEFT JOIN {field_data_field_edited_on_mobile} edited_mobile ON n.nid = edited_mobile.entity_id LEFT JOIN {field_data_field_location} loc ON n.nid = loc.entity_id LEFT JOIN {field_data_field_created_by} cr ON n.nid = cr.entity_id LEFT JOIN {field_data_field_landmark} land ON n.nid = land.entity_id LEFT JOIN {field_data_field_shop_area} shop ON n.nid = shop.entity_id LEFT JOIN {field_data_field_pudo_storage_space} pudo ON n.nid = pudo.entity_id LEFT JOIN {field_data_body} remarks ON n.nid = remarks.entity_id WHERE n.type = :type AND n.title IN (:fc_codes)", array(
+					':type' => 'geo_tag',
+					//':sync' => 'no',
+					//':created_by' => 'NULL',
+					':fc_codes' => $access_codes,
+				));
+				$branches = array();
+				foreach($branch_query as $record) {
+					$branches[$record->nid]['nid'] = $record->nid;
+					$branches[$record->nid]['fc_code'] = $record->title;
+					$branches[$record->nid]['fc_name']= $record->field_facility_name_value;
+					$branches[$record->nid]['address1'] = $record->field_address_1_value; //Unique ro_code
+					$branches[$record->nid]['address2'] = $record->field_address_2_value; //Unique ro_code
+					$branches[$record->nid]['city'] = $record->field_city_value;
+					$branches[$record->nid]['postal'] = $record->field_postal_code_value;
+					$branches[$record->nid]['state'] = $record->field_state_value;
+					$branches[$record->nid]['country'] = $record->field_country_value;
+					$branches[$record->nid]['phone'] = $record->field_phone_number_value;
+					$branches[$record->nid]['email']= $record->field_email_value;
+					$branches[$record->nid]['emp_no'] = $record->field_no_of_employees_value;
+					$branches[$record->nid]['floor'] = $record->field_office_floor_value;
+					$branches[$record->nid]['openhr'] = $record->field_opening_hours_value;
+					$branches[$record->nid]['closehr'] = $record->field_closing_hours_value;
+					$branches[$record->nid]['parking'] = $record->field_parking_available_value;
+					$branches[$record->nid]['cctv'] = $record->field_cctv_value;
+					$branches[$record->nid]['closedys'][] = $record->field_closing_days_value;
+					$branches[$record->nid]['synced'] = $record->field_updated_by_mobile_value;
+					$branches[$record->nid]['context'] = $record->field_context_value;
+					$branches[$record->nid]['edited_on_mobile'] = $record->field_edited_on_mobile_value;
+					$branches[$record->nid]['lat'] = $record->field_location_lat;
+					$branches[$record->nid]['long'] = $record->field_location_lng;
+					$branches[$record->nid]['created_by'] = $record->field_created_by_value;
+					$branches[$record->nid]['landmark'] = $record->field_landmark_value;
+					$branches[$record->nid]['shop'] = $record->field_shop_area_value;
+					$branches[$record->nid]['pudo'] = $record->field_pudo_storage_space_value;
+					$branches[$record->nid]['remarks'] = $record->body_value;
+				}
+				$franchise_cc = get_fr_cc_locations($branches); // Calling utility function to get all franchise & cc against branch code
+				$total_locations = array_merge($branches, $franchise_cc); //Combing branches, frachise and cc
+			break;
+		}
+		//dpm($total_locations);
+		return $total_locations;
+	}
+	else {
+		return 'You are not an active user';
+	}
+}
+
+/* Utility function to get different ro_codes against zonal_code*/
+function get_regional_codes($access_codes) {
+	$query = db_query("SELECT n.title, n.nid FROM {node} n JOIN {field_data_field_reporting_office_code} roc ON n.nid = roc.entity_id WHERE n.type = :type AND roc.field_reporting_office_code_value IN (:reporting_office_code)", array(
+        ':type' => 'regional_master',
+        ':reporting_office_code' => $access_codes,
+	));
+	$ro_codes = array();
+	foreach($query as $record) {
+		$ro_codes[] = $record->title;
+	}
+	return $ro_codes;
+}
+
+/* Utility function to get all branches against differnt ro_codes*/
+function get_branches($ro_codes) {
+	$branch_query = db_query("SELECT n.title, n.nid, fc.field_facility_name_value, tloc.field_type_of_location_tid, email.field_email_value, add1.field_address_1_value, add2.field_address_2_value, city.field_city_value, state.field_state_value, postal.field_postal_code_value, country.field_country_value, phone.field_phone_number_value, employee.field_no_of_employees_value, floor.field_office_floor_value, openhr.field_opening_hours_value, closehr.field_closing_hours_value, parking.field_parking_available_value, cctv.field_cctv_value, closingdays.field_closing_days_value, synced.field_updated_by_mobile_value, context.field_context_value, edited_mobile.field_edited_on_mobile_value, loc.field_location_lat, loc.field_location_lng, cr.field_created_by_value, land.field_landmark_value, shop.field_shop_area_value, pudo.field_pudo_storage_space_value, remarks.body_value FROM {node} n JOIN {field_data_field_facility_name} fc ON n.nid = fc.entity_id JOIN {field_data_field_reporting_office_code} roc ON n.nid = roc.entity_id LEFT JOIN {field_data_field_type_of_location} tloc ON n.nid = tloc.entity_id LEFT JOIN {field_data_field_email} email ON n.nid = email.entity_id LEFT JOIN {field_data_field_address_1} add1 ON n.nid = add1.entity_id LEFT JOIN {field_data_field_address_2} add2 ON n.nid = add2.entity_id LEFT JOIN {field_data_field_city} city ON n.nid = city.entity_id LEFT JOIN {field_data_field_state} state ON n.nid = state.entity_id LEFT JOIN {field_data_field_postal_code} postal ON n.nid = postal.entity_id LEFT JOIN {field_data_field_country} country ON n.nid = country.entity_id LEFT JOIN {field_data_field_phone_number} phone ON n.nid = phone.entity_id LEFT JOIN {field_data_field_no_of_employees} employee ON n.nid = employee.entity_id LEFT JOIN {field_data_field_office_floor} floor ON n.nid = floor.entity_id LEFT JOIN {field_data_field_opening_hours} openhr ON n.nid = openhr.entity_id LEFT JOIN {field_data_field_closing_hours} closehr ON n.nid = closehr.entity_id LEFT JOIN {field_data_field_parking_available} parking ON n.nid = parking.entity_id LEFT JOIN {field_data_field_cctv} cctv ON n.nid = cctv.entity_id LEFT JOIN {field_data_field_closing_days} closingdays ON n.nid = closingdays.entity_id LEFT JOIN {field_data_field_updated_by_mobile} synced ON n.nid = synced.entity_id LEFT JOIN {field_data_field_context} context ON n.nid = context.entity_id LEFT JOIN {field_data_field_edited_on_mobile} edited_mobile ON n.nid = edited_mobile.entity_id LEFT JOIN {field_data_field_location} loc ON n.nid = loc.entity_id LEFT JOIN {field_data_field_created_by} cr ON n.nid = cr.entity_id LEFT JOIN {field_data_field_landmark} land ON n.nid = land.entity_id LEFT JOIN {field_data_field_shop_area} shop ON n.nid = shop.entity_id  LEFT JOIN {field_data_field_pudo_storage_space} pudo ON n.nid = pudo.entity_id LEFT JOIN {field_data_body} remarks ON n.nid = remarks.entity_id WHERE n.type = :type AND roc.field_reporting_office_code_value IN (:reporting_office_code)", array(
+        ':type' => 'geo_tag',
+        //':sync' => 'no',
+        ':reporting_office_code' => $ro_codes,
+	));
+	$branches = array();
+	foreach($branch_query as $record) {
+		$branches[$record->nid]['nid'] = $record->nid;
+		$branches[$record->nid]['fc_code'] = $record->title;
+		$branches[$record->nid]['fc_name']= $record->field_facility_name_value;
+		$branches[$record->nid]['address1'] = $record->field_address_1_value;
+		$branches[$record->nid]['address2'] = $record->field_address_2_value;
+		$branches[$record->nid]['city'] = $record->field_city_value;
+		$branches[$record->nid]['postal'] = $record->field_postal_code_value;
+		$branches[$record->nid]['state'] = $record->field_state_value;
+		$branches[$record->nid]['country'] = $record->field_country_value;
+		$branches[$record->nid]['phone'] = $record->field_phone_number_value;
+		$branches[$record->nid]['email']= $record->field_email_value;
+		$branches[$record->nid]['emp_no'] = $record->field_no_of_employees_value;
+		$branches[$record->nid]['floor'] = $record->field_office_floor_value;
+		$branches[$record->nid]['openhr'] = $record->field_opening_hours_value;
+		$branches[$record->nid]['closehr'] = $record->field_closing_hours_value;
+		$branches[$record->nid]['parking'] = $record->field_parking_available_value;
+		$branches[$record->nid]['cctv'] = $record->field_cctv_value;
+		$branches[$record->nid]['closedys'][] = $record->field_closing_days_value;
+		$branches[$record->nid]['synced'] = $record->field_updated_by_mobile_value;
+		$branches[$record->nid]['context'] = $record->field_context_value;
+		$branches[$record->nid]['edited_on_mobile'] = $record->field_edited_on_mobile_value;
+		$branches[$record->nid]['lat'] = $record->field_location_lat;
+		$branches[$record->nid]['long'] = $record->field_location_lng;
+		$branches[$record->nid]['created_by'] = $record->field_created_by_value;
+		$branches[$record->nid]['landmark'] = $record->field_landmark_value;
+		$branches[$record->nid]['shop'] = $record->field_shop_area_value;
+		$branches[$record->nid]['pudo'] = $record->field_pudo_storage_space_value;
+		$branches[$record->nid]['remarks'] = $record->body_value;
+	}
+	return $branches;
+}
+
+// Utility function to get all franchise and cash collection location against branch code (Here passing complete branch location array and retriving branch code to fetch regions and cc) */
+
+function get_fr_cc_locations($branch_locations) {
+	foreach($branch_locations as $key => $branch_location) {
+		$br_codes[] = $branch_location['fc_code']; //Different branch code to search regions and cash collections
+	}
+	$query = db_query("SELECT n.title, n.nid, fc.field_facility_name_value, tloc.field_type_of_location_tid, email.field_email_value, add1.field_address_1_value, add2.field_address_2_value, city.field_city_value, state.field_state_value, postal.field_postal_code_value, country.field_country_value, phone.field_phone_number_value, employee.field_no_of_employees_value, floor.field_office_floor_value, openhr.field_opening_hours_value, closehr.field_closing_hours_value, parking.field_parking_available_value, cctv.field_cctv_value, closingdays.field_closing_days_value, synced.field_updated_by_mobile_value, context.field_context_value, edited_mobile.field_edited_on_mobile_value, loc.field_location_lat, loc.field_location_lng, cr.field_created_by_value, land.field_landmark_value, shop.field_shop_area_value, pudo.field_pudo_storage_space_value, remarks.body_value FROM {node} n JOIN {field_data_field_facility_name} fc ON n.nid = fc.entity_id JOIN {field_data_field_reporting_office_code} roc ON n.nid = roc.entity_id LEFT JOIN {field_data_field_type_of_location} tloc ON n.nid = tloc.entity_id LEFT JOIN {field_data_field_email} email ON n.nid = email.entity_id LEFT JOIN {field_data_field_address_1} add1 ON n.nid = add1.entity_id LEFT JOIN {field_data_field_address_2} add2 ON n.nid = add2.entity_id LEFT JOIN {field_data_field_city} city ON n.nid = city.entity_id LEFT JOIN {field_data_field_state} state ON n.nid = state.entity_id LEFT JOIN {field_data_field_postal_code} postal ON n.nid = postal.entity_id LEFT JOIN {field_data_field_country} country ON n.nid = country.entity_id LEFT JOIN {field_data_field_phone_number} phone ON n.nid = phone.entity_id LEFT JOIN {field_data_field_no_of_employees} employee ON n.nid = employee.entity_id LEFT JOIN {field_data_field_office_floor} floor ON n.nid = floor.entity_id LEFT JOIN {field_data_field_opening_hours} openhr ON n.nid = openhr.entity_id LEFT JOIN {field_data_field_closing_hours} closehr ON n.nid = closehr.entity_id LEFT JOIN {field_data_field_parking_available} parking ON n.nid = parking.entity_id LEFT JOIN {field_data_field_cctv} cctv ON n.nid = cctv.entity_id LEFT JOIN {field_data_field_closing_days} closingdays ON n.nid = closingdays.entity_id LEFT JOIN {field_data_field_updated_by_mobile} synced ON n.nid = synced.entity_id LEFT JOIN {field_data_field_context} context ON n.nid = context.entity_id LEFT JOIN {field_data_field_edited_on_mobile} edited_mobile ON n.nid = edited_mobile.entity_id LEFT JOIN {field_data_field_location} loc ON n.nid = loc.entity_id LEFT JOIN {field_data_field_created_by} cr ON n.nid = cr.entity_id LEFT JOIN {field_data_field_landmark} land ON n.nid = land.entity_id LEFT JOIN {field_data_field_shop_area} shop ON n.nid = shop.entity_id  LEFT JOIN {field_data_field_pudo_storage_space} pudo ON n.nid = pudo.entity_id LEFT JOIN {field_data_body} remarks ON n.nid = remarks.entity_id WHERE n.type = :type AND roc.field_reporting_office_code_value IN (:reporting_office_code)", array(
+        ':type' => 'geo_tag',
+        //':sync' => 'no',
+        ':reporting_office_code' => $br_codes,
+	));
+	$all_fr_cc = array();
+	foreach($query as $record) {
+		$all_fr_cc[$record->nid]['nid'] = $record->nid;
+		$all_fr_cc[$record->nid]['fc_code'] = $record->title;
+		$all_fr_cc[$record->nid]['fc_name']= $record->field_facility_name_value;
+		$all_fr_cc[$record->nid]['address1'] = $record->field_address_1_value; //Unique ro_code
+		$all_fr_cc[$record->nid]['address2'] = $record->field_address_2_value; //Unique ro_code
+		$all_fr_cc[$record->nid]['city'] = $record->field_city_value;
+		$all_fr_cc[$record->nid]['postal'] = $record->field_postal_code_value;
+		$all_fr_cc[$record->nid]['state'] = $record->field_state_value;
+		$all_fr_cc[$record->nid]['country'] = $record->field_country_value;
+		$all_fr_cc[$record->nid]['phone'] = $record->field_phone_number_value;
+		$all_fr_cc[$record->nid]['email']= $record->field_email_value;
+		$all_fr_cc[$record->nid]['emp_no'] = $record->field_no_of_employees_value;
+		$all_fr_cc[$record->nid]['floor'] = $record->field_office_floor_value;
+		$all_fr_cc[$record->nid]['openhr'] = $record->field_opening_hours_value;
+		$all_fr_cc[$record->nid]['closehr'] = $record->field_closing_hours_value;
+		$all_fr_cc[$record->nid]['parking'] = $record->field_parking_available_value;
+		$all_fr_cc[$record->nid]['cctv'] = $record->field_cctv_value;
+		$all_fr_cc[$record->nid]['closedys'][] = $record->field_closing_days_value;
+		$all_fr_cc[$record->nid]['synced'] = $record->field_updated_by_mobile_value;
+		$all_fr_cc[$record->nid]['context'] = $record->field_context_value;
+		$all_fr_cc[$record->nid]['edited_on_mobile'] = $record->field_edited_on_mobile_value;
+		$all_fr_cc[$record->nid]['lat'] = $record->field_location_lat;
+		$all_fr_cc[$record->nid]['long'] = $record->field_location_lng;
+		$all_fr_cc[$record->nid]['created_by'] = $record->field_created_by_value;
+		$all_fr_cc[$record->nid]['landmark'] = $record->field_landmark_value;
+		$all_fr_cc[$record->nid]['shop'] = $record->field_shop_area_value;
+		$all_fr_cc[$record->nid]['pudo'] = $record->field_pudo_storage_space_value;
+		$all_fr_cc[$record->nid]['remarks'] = $record->body_value;
+		$fr_codes[] = $record->title;
+	}
+	$all_cc = get_cc_from_fr($fr_codes); // All cc against different franchise
+	$final_all_locations = array_merge($all_fr_cc, $all_cc); // Combing all fracnise & cc records with all cc records against franchise code
+	return $final_all_locations;
+}
+
+/* get all cc from different fr_codes(Franchise code)*/
+
+function get_cc_from_fr($fr_codes) { // Get all cc against franchise code
+	$query = db_query("SELECT n.title, n.nid, fc.field_facility_name_value, tloc.field_type_of_location_tid, email.field_email_value, add1.field_address_1_value, add2.field_address_2_value, city.field_city_value, state.field_state_value, postal.field_postal_code_value, country.field_country_value, phone.field_phone_number_value, employee.field_no_of_employees_value, floor.field_office_floor_value, openhr.field_opening_hours_value, closehr.field_closing_hours_value, parking.field_parking_available_value, cctv.field_cctv_value, closingdays.field_closing_days_value, synced.field_updated_by_mobile_value, context.field_context_value, edited_mobile.field_edited_on_mobile_value, loc.field_location_lat, loc.field_location_lng, cr.field_created_by_value, land.field_landmark_value, shop.field_shop_area_value, pudo.field_pudo_storage_space_value, remarks.body_value FROM {node} n JOIN {field_data_field_facility_name} fc ON n.nid = fc.entity_id JOIN {field_data_field_reporting_office_code} roc ON n.nid = roc.entity_id LEFT JOIN {field_data_field_type_of_location} tloc ON n.nid = tloc.entity_id LEFT JOIN {field_data_field_email} email ON n.nid = email.entity_id LEFT JOIN {field_data_field_address_1} add1 ON n.nid = add1.entity_id LEFT JOIN {field_data_field_address_2} add2 ON n.nid = add2.entity_id LEFT JOIN {field_data_field_city} city ON n.nid = city.entity_id LEFT JOIN {field_data_field_state} state ON n.nid = state.entity_id LEFT JOIN {field_data_field_postal_code} postal ON n.nid = postal.entity_id LEFT JOIN {field_data_field_country} country ON n.nid = country.entity_id LEFT JOIN {field_data_field_phone_number} phone ON n.nid = phone.entity_id LEFT JOIN {field_data_field_no_of_employees} employee ON n.nid = employee.entity_id LEFT JOIN {field_data_field_office_floor} floor ON n.nid = floor.entity_id LEFT JOIN {field_data_field_opening_hours} openhr ON n.nid = openhr.entity_id LEFT JOIN {field_data_field_closing_hours} closehr ON n.nid = closehr.entity_id LEFT JOIN {field_data_field_parking_available} parking ON n.nid = parking.entity_id LEFT JOIN {field_data_field_cctv} cctv ON n.nid = cctv.entity_id LEFT JOIN {field_data_field_closing_days} closingdays ON n.nid = closingdays.entity_id LEFT JOIN {field_data_field_updated_by_mobile} synced ON n.nid = synced.entity_id LEFT JOIN {field_data_field_context} context ON n.nid = context.entity_id LEFT JOIN {field_data_field_edited_on_mobile} edited_mobile ON n.nid = edited_mobile.entity_id LEFT JOIN {field_data_field_location} loc ON n.nid = loc.entity_id LEFT JOIN {field_data_field_created_by} cr ON n.nid = cr.entity_id LEFT JOIN {field_data_field_landmark} land ON n.nid = land.entity_id LEFT JOIN {field_data_field_shop_area} shop ON n.nid = shop.entity_id  LEFT JOIN {field_data_field_pudo_storage_space} pudo ON n.nid = pudo.entity_id LEFT JOIN {field_data_body} remarks ON n.nid = remarks.entity_id WHERE n.type = :type AND roc.field_reporting_office_code_value IN (:reporting_office_code)", array(
+        ':type' => 'geo_tag',
+        //':sync' => 'no',
+        ':reporting_office_code' => $fr_codes,
+	));
+	$cc_locations = array();
+	foreach($query as $record) {
+		$cc_locations[$record->nid]['nid'] = $record->nid;
+		$cc_locations[$record->nid]['fc_code'] = $record->title;
+		$cc_locations[$record->nid]['fc_name']= $record->field_facility_name_value;
+		$cc_locations[$record->nid]['address1'] = $record->field_address_1_value; //Unique ro_code
+		$cc_locations[$record->nid]['address2'] = $record->field_address_2_value; //Unique ro_code
+		$cc_locations[$record->nid]['city'] = $record->field_city_value;
+		$cc_locations[$record->nid]['postal'] = $record->field_postal_code_value;
+		$cc_locations[$record->nid]['state'] = $record->field_state_value;
+		$cc_locations[$record->nid]['country'] = $record->field_country_value;
+		$cc_locations[$record->nid]['phone'] = $record->field_phone_number_value;
+		$cc_locations[$record->nid]['email']= $record->field_email_value;
+		$cc_locations[$record->nid]['emp_no'] = $record->field_no_of_employees_value;
+		$cc_locations[$record->nid]['floor'] = $record->field_office_floor_value;
+		$cc_locations[$record->nid]['openhr'] = $record->field_opening_hours_value;
+		$cc_locations[$record->nid]['closehr'] = $record->field_closing_hours_value;
+		$cc_locations[$record->nid]['parking'] = $record->field_parking_available_value;
+		$cc_locations[$record->nid]['cctv'] = $record->field_cctv_value;
+		$cc_locations[$record->nid]['closedys'][] = $record->field_closing_days_value;
+		$cc_locations[$record->nid]['synced'] = $record->field_updated_by_mobile_value;
+		$cc_locations[$record->nid]['context'] = $record->field_context_value;
+		$cc_locations[$record->nid]['edited_on_mobile'] = $record->field_edited_on_mobile_value;
+		$cc_locations[$record->nid]['lat'] = $record->field_location_lat;
+		$cc_locations[$record->nid]['long'] = $record->field_location_lng;
+		$cc_locations[$record->nid]['created_by'] = $record->field_created_by_value;
+		$cc_locations[$record->nid]['landmark'] = $record->field_landmark_value;
+		$cc_locations[$record->nid]['shop'] = $record->field_shop_area_value;
+		$cc_locations[$record->nid]['pudo'] = $record->field_pudo_storage_space_value;
+		$cc_locations[$record->nid]['remarks'] = $record->body_value;
+	}
+	return $cc_locations;
+}
+
+/* Utility function to update user profile */
+
+function user_update($id, $user_detail, $user_type) {
+	switch($user_type) {
+		case 'drupal_user':
+			$user = is_numeric($id) ? user_load($id) : FALSE; // Here id is user id(uid)
+			//$user->pass = $user_detail['PASSWORD']; Paramter not available in webservice response so commented
+			$user->field_drupal_user_access_type['und'][0]['value'] = $user_detail['ACCTYPE']; // Override access type for user
+			$user->field_drupal_user_access_code['und'][0]['value'] = $user_detail['ACCCODE']; // Override access code for drupal user
+			$user->field_user_status['und'][0]['value'] = $user_detail['USERSTATUS']; // Override status to check if user is active/inactive.
+			$user->field_first_name['und'][0]['value'] = $user_detail['NAME']; // Override the name of drupal user
+			if($user_detail['USERSTATUS'] == 'I') { // If in webservice response user is inactive, blocked the user from login
+				$user->status = 0;
+			}
+			else {
+				$user->status = 1;
+			}
+			$edit = array();
+			$account = user_save($user, $edit);
+			if(is_object($account)) {
+				return 'Drupal user updated successfully';
+			}
+			else {
+				return 'Not updated';
+			}
+		break;
+		case 'mobile_user':
+			$node = is_numeric($id) ? node_load($id) : FALSE; // Here id is nid
+			$access_codes = explode(',', $user_detail['ACCCODE']);
+			$node->field_access_type['und'][0]['value'] = $user_detail['ACCTYPE'];
+			unset($node->field_access_code['und']); // Unsetting the previous value for access_code
+			foreach($access_codes as $key => $access_code) {
+				$node->field_access_code['und'][$key]['value'] = $access_code; // Need to check if there is morethen 1 value for access_code
+			}
+			$node->field_status['und'][0]['value'] = $user_detail['USERSTATUS'];
+			$node->field_password['und'][0]['value'] = $user_detail['IMEI'];
+			$node->field_name['und'][0]['value'] = $user_detail['NAME'];
+			node_save($node);
+		break;
+	}
+}
+
+/* Utility function to update branch, franchise, ccc node */
+ 
+function node_type_update($nid, $updated_loc, $type) {
+	$node = is_numeric($nid) ? node_load($nid) : FALSE;
+	switch($type) {
+		case 'CCC':
+			$ccc_detail = $updated_loc;
+			$parking_avl = $ccc_detail['PRKNG_AVL'];
+			if($parking_avl == 'Y') {
+				$parking_avl = 'Yes';
+			}
+			else {
+				$parking_avl = 'No';
+			}
+			$cctv_avl = $ccc_detail['CCTV_AVL'];
+			if($cctv_avl == 'Y') {
+				$cctv_avl = 'Yes';
+			}
+			else {
+				$cctv_avl = 'No';
+			}
+			$closing_days = explode(',', $ccc_detail['CLOSING_DAYS']);
+			//$closingday1 = isset($closing_days[0]) ? $closing_days[0] : FALSE;
+			//$closingday2 = isset($closing_days[1]) ? $closing_days[1] : FALSE;
+			$node->type = 'geo_tag';
+			$node->field_facility_name['und'][0]['value'] = $ccc_detail['CCC_NAME'];
+			$node->body['und'][0]['value'] = $ccc_detail['SPLINFORMATION'];
+			//$node->field_facility_code['und'][0]['value'] = $locncode;
+			//$node->field_location['und'][0]['lat'] = $ccc_detail['LATTITUDE'];
+			//$node->field_location['und'][0]['lng'] = $ccc_detail['LONGITUDE'];
+			$node->field_phone_number['und'][0]['value'] = $ccc_detail['CCC_PHONE'];
+			$node->field_email['und'][0]['value'] = $ccc_detail['CCC_EMAIL'];
+			$node->field_contact_person['und'][0]['value'] = $ccc_detail['CCC_INCHARGE'];
+			$node->field_parking_available['und'][0]['value'] = $parking_avl;
+			$node->field_cctv['und'][0]['value'] = $cctv_avl;
+			$node->field_office_floor['und'][0]['value'] = is_numeric($ccc_detail['OFF_FLR']) ? $ccc_detail['OFF_FLR'] : 0;
+			$node->field_shop_area['und'][0]['value'] = is_numeric($ccc_detail['SHOP_AREA']) ? $ccc_detail['SHOP_AREA'] : 0;
+			$node->field_pudo_storage_space['und'][0]['value'] = $ccc_detail['PUDO_STRG_SPACE'];
+			//$node->field_closing_days['und'][0]['value'] = $closingday1;
+			//$node->field_closing_days['und'][1]['value'] = $closingday2;
+			unset($node->field_closing_days['und']); // Unsetting the previous value of days
+			foreach($closing_days as $key => $closing_day) {
+				$node->field_closing_days['und'][$key]['value'] = $closing_day; // Need to check if there is morethen 1 value for access_code
+			}
+			$node->field_address_1['und'][0]['value'] = $ccc_detail['CCC_ADD1'];
+			$node->field_address_2['und'][0]['value'] = $ccc_detail['CCC_ADD2'];
+			$node->field_landmark['und'][0]['value'] = $ccc_detail['LNDMRK'];
+			$node->field_city['und'][0]['value'] = $ccc_detail['CITY_NAME'];
+			$node->field_state['und'][0]['value'] = $ccc_detail['STATE_NAME'];
+			$node->field_country['und'][0]['value'] = $ccc_detail['COUNTRY_NAME'];
+			$node->field_postal_code['und'][0]['value'] = $ccc_detail['CCC_PIN'];
+			$node->field_opening_hours['und'][0]['value'] = $ccc_detail['OPENINGHR'];
+			$node->field_closing_hours['und'][0]['value'] = $ccc_detail['CLOSINGHR'];
+			$node->field_no_of_employees['und'][0]['value'] = is_numeric($ccc_detail['NO_OF_EMP']) ? $ccc_detail['NO_OF_EMP'] : 0;
+			$node->field_reporting_office_type['und'][0]['value'] = $ccc_detail['CCC_REPOFFTYPE'];
+			$node->field_reporting_office_code['und'][0]['value'] = $ccc_detail['CCC_REPOFFCODE'];
+			$node->field_location_status['und'][0]['value'] = $ccc_detail['CCC_STATUS'];
+			$node->field_state_code['und'][0]['value'] = $ccc_detail['STATE'];
+			$node->field_city_code['und'][0]['value'] = $ccc_detail['CCC_CITY'];
+			node_save($node);
+		break;
+		case 'Branch':
+			$br_detail = $updated_loc;
+			$parking_avl = $br_detail['PRKNG_AVL'];
+			if($parking_avl == 'Y') {
+				$parking_avl = 'Yes';
+			}
+			else {
+				$parking_avl = 'No';
+			}
+			$cctv_avl = $br_detail['CCTV_AVL'];
+			if($cctv_avl == 'Y') {
+				$cctv_avl = 'Yes';
+			}
+			else {
+				$cctv_avl = 'No';
+			}
+			$closing_days = explode(',', $br_detail['CLOSING_DAYS']);
+			$node->type = 'geo_tag';
+			$node->field_facility_name['und'][0]['value'] = $br_detail['BRANCH_NAME'];
+			$node->body['und'][0]['value'] = $br_detail['SPLINFORMATION'];
+			//$node->field_facility_code['und'][0]['value'] = $locncode;
+			//$node->field_location['und'][0]['lat'] = $br_detail['LATTITUDE'];
+			//$node->field_location['und'][0]['lng'] = $br_detail['LONGITUDE'];
+			$node->field_phone_number['und'][0]['value'] = $br_detail['BRANCH_PHONE'];
+			$node->field_email['und'][0]['value'] = $br_detail['BRANCH_EMAIL'];
+			$node->field_contact_person['und'][0]['value'] = $br_detail['CNTCT_PRSN'];
+			$node->field_parking_available['und'][0]['value'] = $parking_avl;
+			$node->field_cctv['und'][0]['value'] = $cctv_avl;
+			$node->field_office_floor['und'][0]['value'] = $br_detail['OFF_FLR'];
+			$node->field_shop_area['und'][0]['value'] = is_numeric($br_detail['SHOP_AREA']) ? $br_detail['SHOP_AREA'] : 0;
+			$node->field_pudo_storage_space['und'][0]['value'] = is_numeric($br_detail['PUDO_STRG_SPACE']) ? $br_detail['PUDO_STRG_SPACE'] : 0;
+			unset($node->field_closing_days['und']); // Unsetting the previous value of days
+			foreach($closing_days as $key => $closing_day) {
+				$node->field_closing_days['und'][$key]['value'] = $closing_day; // Need to check if there is morethen 1 value for access_code
+			}
+			$node->field_address_1['und'][0]['value'] = $br_detail['BRANCH_ADD1'];
+			$node->field_address_2['und'][0]['value'] = $br_detail['BRANCH_ADD2'];
+			$node->field_landmark['und'][0]['value'] = $br_detail['lndmrk'];
+			$node->field_city['und'][0]['value'] = $br_detail['CITY_NAME'];
+			$node->field_state['und'][0]['value'] = $br_detail['STATE_NAME'];
+			$node->field_postal_code['und'][0]['value'] = $br_detail['BRANCH_PIN'];
+			$node->field_opening_hours['und'][0]['value'] = $br_detail['OPENINGHR'];
+			$node->field_closing_hours['und'][0]['value'] = $br_detail['CLOSINGHR'];
+			$node->field_no_of_employees['und'][0]['value'] = is_numeric($br_detail['NO_OF_EMP']) ? $br_detail['NO_OF_EMP'] : 0;
+			$node->field_reporting_office_type['und'][0]['value'] = $br_detail['BRANCH_REPOFF'];
+			$node->field_reporting_office_code['und'][0]['value'] = $br_detail['BRANCH_REPOFFCD'];
+			$node->field_location_status['und'][0]['value'] = $br_detail['BRANCH_STATUS'];
+			$node->field_state_code['und'][0]['value'] = $br_detail['BRANCH_STATE'];
+			$node->field_city_code['und'][0]['value'] = $br_detail['BRANCH_CITY'];
+			$node->field_country['und'][0]['value'] = $br_detail['COUNTRY_NAME'];
+			node_save($node);
+		break;
+		case 'Franchise':
+			$fr_detail = $updated_loc;
+			$parking_avl = $fr_detail['PRKNG_AVL'];
+			if($parking_avl == 'Y') {
+				$parking_avl = 'Yes';
+			}
+			else {
+				$parking_avl = 'No';
+			}
+			$cctv_avl = $fr_detail['CCTV_AVL'];
+			if($cctv_avl == 'Y') {
+				$cctv_avl = 'Yes';
+			}
+			else {
+				$cctv_avl = 'No';
+			}
+			$closing_days = explode(',', $fr_detail['CLOSING_DAYS']);
+			$node->type = 'geo_tag';
+			$node->field_facility_name['und'][0]['value'] = $fr_detail['FR_NAME'];
+			$node->body['und'][0]['value'] = $fr_detail['SPLINFORMATION'];
+			//$node->field_facility_code['und'][0]['value'] = $locncode;
+			//$node->field_location['und'][0]['lat'] = $fr_detail['LATTITUDE'];
+			//$node->field_location['und'][0]['lng'] = $fr_detail['LONGITUDE'];
+			$node->field_phone_number['und'][0]['value'] = $fr_detail['FR_PHONE'];
+			$node->field_email['und'][0]['value'] = $fr_detail['FR_EMAIL'];
+			$node->field_contact_person['und'][0]['value'] = $fr_detail['CNTCT_PRSN'];
+			$node->field_parking_available['und'][0]['value'] = $parking_avl;
+			$node->field_cctv['und'][0]['value'] = $cctv_avl;
+			$node->field_office_floor['und'][0]['value'] = $fr_detail['OFF_FLR'];
+			$node->field_shop_area['und'][0]['value'] = is_numeric($fr_detail['SHOP_AREA']) ? $fr_detail['SHOP_AREA'] : 0;
+			$node->field_pudo_storage_space['und'][0]['value'] = is_numeric($fr_detail['PUDO_STRG_SPACE']) ?$fr_detail['PUDO_STRG_SPACE'] : 0;
+			unset($node->field_closing_days['und']); // Unsetting the previous value of days
+			foreach($closing_days as $key => $closing_day) {
+				$node->field_closing_days['und'][0]['value'] = $closing_day; // Need to check if there is morethen 1 value for access_code
+			}
+			$node->field_address_1['und'][0]['value'] = $fr_detail['FR_ADD1'];
+			$node->field_address_2['und'][0]['value'] = $fr_detail['FR_ADD2'];
+			$node->field_landmark['und'][0]['value'] = $fr_detail['lndmrk'];; //Missing this paramter in response 
+			$node->field_city['und'][0]['value'] = $fr_detail['CITY_NAME'];
+			$node->field_state['und'][0]['value'] = $fr_detail['STATE_NAME'];
+			$node->field_country['und'][0]['value'] = $fr_detail['COUNTRY_NAME'];
+			$node->field_postal_code['und'][0]['value'] = $fr_detail['FR_PIN'];
+			$node->field_opening_hours['und'][0]['value'] = $fr_detail['OPENINGHR'];
+			$node->field_closing_hours['und'][0]['value'] = $fr_detail['CLOSINGHR'];
+			$node->field_no_of_employees['und'][0]['value'] = is_numeric($fr_detail['NO_OF_EMP']) ? $fr_detail['NO_OF_EMP'] : 0;
+			$node->field_reporting_office_type['und'][0]['value'] = isset($fr_detail['FR_REPOFFTYPE']) ? $fr_detail['FR_REPOFFTYPE'] : 'BO';
+			$node->field_reporting_office_code['und'][0]['value'] = $fr_detail['FR_BRANCH'];
+			$node->field_location_status['und'][0]['value'] = $fr_detail['FR_STATUS'];
+			$node->field_state_code['und'][0]['value'] = $fr_detail['STATE_CODE'];
+			$node->field_city_code['und'][0]['value'] = $fr_detail['FR_CITY'];
+			node_save($node);
+		break;
+		case 'Zone':
+			$node->type = 'zonal_master';
+			$node->field_location_status['und'][0]['value'] = $updated_loc['ZO_STATUS'];
+			$node->field_city['und'][0]['value'] = $updated_loc['ZO_CITY'];
+			$node->field_state['und'][0]['value'] = $updated_loc['ZO_STATE'];
+			$node->field_postal_code['und'][0]['value'] = $updated_loc['ZO_PIN'];
+			$node->field_country['und'][0]['value'] = $updated_loc['ZO_COUNTRY'];
+			$node->field_type_name['und'][0]['value'] = $updated_loc['ZO_NAME'];
+			node_save($node);
+		break;
+		case 'Region':
+			$node->type = 'regional_master';
+			$node->field_location_status['und'][0]['value'] = $updated_loc['RO_STATUS'];
+			$node->field_reporting_office_type['und'][0]['value'] = $updated_loc['RO_REPOFF_TYPE'];
+			$node->field_reporting_office_code['und'][0]['value'] = $updated_loc['RO_REPOFF_CODE'];
+			$node->field_city['und'][0]['value'] = $updated_loc['RO_CITY'];
+			$node->field_state['und'][0]['value'] = $updated_loc['RO_STATE'];
+			$node->field_postal_code['und'][0]['value'] = $updated_loc['RO_PIN'];
+			$node->field_country['und'][0]['value'] = $updated_loc['RO_COUNTRY'];
+			$node->field_type_name['und'][0]['value'] = $updated_loc['RO_NAME'];
+			node_save($node);
+		break;
+	}
+}
+/**
+ * Implements hook_theme() to chnange the geo_tag edit/create node form.
+ */
+function std_hacks_theme($existing, $type, $theme, $path) {
+  return array(
+    'geo_tag_node_form' => array(
+      'render element' => 'form',
+      'template' => 'geo_tag-node-form',
+      // this will set to module/theme path by default:
+      'path' => drupal_get_path('module', 'std_hacks'),
+    ),
+  );
+}
+
+/* Utility function to get lat, long according to stored postal code in locations record and calculate the distance between captured lat, long & postal code's lat, long*/
+function getdistance($postalcode, $node_lat, $node_long) {
+	$url = 'http://maps.googleapis.com/maps/api/geocode/json?address='.$postalcode.'&sensor=false';
+	$json = @file_get_contents($url);
+	$data=json_decode($json);
+	$lat = $data->results[0]->geometry->location->lat;
+	$long = $data->results[0]->geometry->location->lng;
+	$distance = distance($lat, $long, $node_lat, $node_long, 'K');
+	return $distance;
+}
+
+function std_hacks_views_query_alter(&$view, &$query) {
+ if ($view->name == 'iqbal_test') {
+   $query->where[0]['type'] = 'OR';
+  // $result = $query->execute()->fetchAll();
+   //dpm($result);
+ }
+}
+
+/* Utility function to get access_type and access_code of a mobile user*/
+
+function get_access_type_code($node, $created_by) {
+	if(isset($created_by)) {
+		$emp_ids = explode(',', $created_by);
+		$emp_id = $emp_ids[0];
+		$nid = db_query("SELECT nid FROM {node} WHERE type = :type AND title = :title", array(':type' => 'mobile_user', ':title' => $emp_id))->fetchField();
+		$mobile_user_node = is_numeric($nid) ? node_load($nid) : FALSE;
+		$mobile_access_type = isset($mobile_user_node->field_access_type['und'][0]['value']) ? $mobile_user_node->field_access_type['und'][0]['value'] : FALSE;
+		$mobile_access_code = isset($mobile_user_node->field_access_code['und'][0]['value']) ? $mobile_user_node->field_access_code['und'][0]['value'] : FALSE;
+		if(isset($mobile_access_type) && isset($mobile_access_code)) {
+			$mobile_access = reporting_office($mobile_access_type, $mobile_access_code);
+			watchdog('std_hacks', check_plain(print_r($mobile_access, true)));
+		}
+		return $mobile_access;
+	}
+	else {
+		return FALSE;
+	}
+	
+}
+
+function reporting_office($access_type, $access_code) {
+	switch($access_type) {
+		case 1:
+			$reporting_office['type'] = 'RO';
+			$query = db_select('node', 'n');
+				$query->join('field_data_field_reporting_office_code', 'roc', 'roc.entity_id = n.nid');
+				$query->fields('n', array('title'));
+				$query->condition('n.type', 'regional_master', '=');
+				$query->condition('roc.bundle', 'regional_master', '=');
+				$query->condition('roc.field_reporting_office_code_value', $access_code, '=');
+				$result = $query->execute();
+				$ro_codes = array();
+				while($records = $result->fetchAssoc()) {
+					$ro_code = $records['title'];
+				}
+				$reporting_office['code'] = $ro_code;
+				//watchdog('std_hacks', check_plain(print_r($reporting_office, true)));
+				return $reporting_office;
+				
+		break;
+		case 2:
+		case 3:
+			$access_types = array(2 => 'RO', 3 => 'BO');
+			$reporting_office['type'] = $access_types[$access_type];
+			$reporting_office['code'] = $access_code;
+			return $reporting_office;
+		break;	
+	}
+}
+
+/* Utility function to create new Drupal/Mobile user if not persent(Webservice)*/
+
+function user_create($type, $user_detail) { // Drupal/Mobile user creation if not persent. 
+	switch($type) {
+		case 'mobile':
+			$node = new stdClass();
+			$node->type = 'mobile_user';
+			node_object_prepare($node); // Sets some defaults. Invokes hook_prepare() and hook_node_prepare().
+			$node->title = $user_detail['EMP_CODE'];
+			//$node->language = LANGUAGE_NONE;
+			$node->uid = 1;
+			$node->field_access_code['und'][0]['value'] = $user_detail['ACCCODE'];
+			$node->field_access_type['und'][0]['value'] = $user_detail['ACCTYPE'];
+			$node->field_status['und'][0]['value'] = $user_detail['USERSTATUS'];
+			$node->field_password['und'][0]['value'] = $user_detail['IMEI'];
+			$node->field_name['und'][0]['value'] = $user_detail['NAME'];
+			node_save($node);
+			$node_id = $node->nid;
+			if(isset($node_id)) {
+				$output['response'] = array('remarks' => 'record created', 'nid' => $node_id);
+			}
+			else {
+				$output['response'] = array('remarks' => 'record not created', 'nid' => 0);
+			}
+			return $output;
+		break;
+		case 'drupal':
+			$newUser = array(
+				'name' => $user_detail['EMP_CODE'],
+				'pass' => $user_detail['PASSWORD'],
+				'mail' => 'test54@test.com',
+				'status' => 1,
+				'init' => "",
+				'field_drupal_user_access_type' => array('und' => array(array('value' => $user_detail['ACCTYPE']))),
+				'field_drupal_user_access_code' => array('und' => array(array('value' => $user_detail['ACCCODE']))),
+				'field_user_status' => array('und' => array(array('value' => $user_detail['USERSTATUS']))),
+				'field_first_name' => array('und' => array(array('value' => $user_detail['NAME']))),
+				'access' => REQUEST_TIME,
+				//'roles' => array(DRUPAL_AUTHENTICATED_RID => 'Approver',),
+				'roles' => array(), // No other roles than Authenticated
+				'roles' => array('4' => 'Approver'), // If you want to specify additional roles, the numbers are role_id's
+			);
+			user_save(null, $newUser);
+		break;
+	}
+}
+
+// Utiltiy function to calculate distance between two lat, long
+function distance($lat1, $lon1, $lat2, $lon2, $unit) {
+	$theta = $lon1 - $lon2;
+	$dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+	$dist = acos($dist);
+	$dist = rad2deg($dist);
+	$miles = $dist * 60 * 1.1515;
+	$distance = $miles * 1.609344;
+	return $distance;
+}
+
+/* Utility function to check system admin & operation admin role*/
+function is_admin($user = FALSE) {
+	if(!$user) {
+		global $user;
+	}
+	if(in_array('administrator', $user->roles)) {
+		return TRUE;
+  }
+  return FALSE;
+}
+
+/* Utility function to map day with their corresponding day number */ 
+
+function closing_days_map($closing_day) {
+	$all_days = array(
+		'none' => 0,
+		'monday' => 1,
+		'tuesday' => 2,
+		'wednesday' => 3,
+		'thursday' => 4,
+		'friday' => 5,
+		'saturday' => 6,
+		'sunday' => 7,
+	);
+	return $all_days[$closing_day['value']];
+}
+
+/* Utility function to map office floor with corresponding floor number*/
+
+function floor_map($floor) {
+	$floor_num = array(
+		'basement' => 0,
+		'ground' => 1,
+		'first' => 2,
+		'second' => 3,
+		'third' => 4,
+	);
+	return $floor_num[$floor];
+}
+
+function loc_test() {
+	$login_id = $_REQUEST['loginid'];
+	$password = $_REQUEST['imei'];
+	if(isset($login_id) && isset($password)) {
+		//$nid = db_query("SELECT n.nid FROM {node} n JOIN {field_data_field_password} p ON p.entity_id = n.nid WHERE n.title = :login_id AND p.field_password_value = :imei AND n.type = :type", array(':login_id' => $login_id, ':imei' => $password, ':type' => 'mobile_user'))->fetchField();
+		$nid = db_query("SELECT nid FROM {node} WHERE title = :login_id", array(':login_id' => $login_id))->fetchField();
+		if($nid) {
+			dpm($nid);
+			$node = is_numeric($nid) ? node_load($nid) : FALSE;
+			$access_type = $node->field_access_type['und'][0]['value'];
+			$access_codes = $node->field_access_code['und'][0]['value'];
+			$status = $node->field_status['und'][0]['value'];
+			$name = $node->field_name['und'][0]['value'];
+			$created_by = $login_id.','.$name;
+			dpm($created_by);
+			if(isset($access_type) && isset($access_codes) && isset($status)) {
+				$loc_details = access_based_location_test($access_type, $access_codes, $status, $created_by);
+				$output['response'] = array('LGNID' => $login_id, 'NAME' => $name, 'ACCSTYPE' => $access_type, 'ACCSCODE' => $access_codes, 'REMARKS' => 'Succesfull', 'LOCATIONS' => $loc_details, 'STATUS' => $status);
+			}
+			else {
+				$output['response'] = array('LGNID' => $login_id, 'REMARKS' => 'No location');
+			}
+		}
+		else {
+			$output['response'] = array('LGNID' => $login_id, 'REMARKS' => 'Invalid Login ID/IMEI');
+		}
+	}
+	else {
+		$output['response'] = array('LGNID' => $login_id, 'REMARKS' => 'Invalid Login ID/IMEI');
+	}
+	return 'foo';
+	//return $output;
+}
+
+/*function get_cc_from_fr_test($title_fr_cc) {
+	$cc = db_query("select n.title from drupal_node n join drupal_field_data_field_reporting_office_code fc ON n.nid=fc.entity_id WHERE fc.field_reporting_office_code_value IN (:title) AND n.type = :type", array(':title' => $title_fr_cc,':type'=>'geo_tag'))->fetchAll();
+	foreach($cc as $row) {
+		$title_cc[] = $row->title;
+	}
+	return $title_cc;
+}*/
+function access_based_location_test($access_type, $access_codes, $status, $created_by) {
+	$branch_query = db_query("SELECT n.title, n.nid, fc.field_facility_name_value, tloc.field_type_of_location_tid, email.field_email_value, add1.field_address_1_value, add2.field_address_2_value, city.field_city_value, state.field_state_value, postal.field_postal_code_value, country.field_country_value, phone.field_phone_number_value, employee.field_no_of_employees_value, floor.field_office_floor_value, openhr.field_opening_hours_value, closehr.field_closing_hours_value, parking.field_parking_available_value, cctv.field_cctv_value, closingdays.field_closing_days_value, synced.field_updated_by_mobile_value, context.field_context_value, edited_mobile.field_edited_on_mobile_value, loc.field_location_lat, loc.field_location_lng, cr.field_created_by_value FROM {node} n JOIN {field_data_field_facility_name} fc ON n.nid = fc.entity_id JOIN {field_data_field_reporting_office_code} roc ON n.nid = roc.entity_id LEFT JOIN {field_data_field_type_of_location} tloc ON n.nid = tloc.entity_id LEFT JOIN {field_data_field_email} email ON n.nid = email.entity_id LEFT JOIN {field_data_field_address_1} add1 ON n.nid = add1.entity_id LEFT JOIN {field_data_field_address_2} add2 ON n.nid = add2.entity_id LEFT JOIN {field_data_field_city} city ON n.nid = city.entity_id LEFT JOIN {field_data_field_state} state ON n.nid = state.entity_id LEFT JOIN {field_data_field_postal_code} postal ON n.nid = postal.entity_id LEFT JOIN {field_data_field_country} country ON n.nid = country.entity_id LEFT JOIN {field_data_field_phone_number} phone ON n.nid = phone.entity_id LEFT JOIN {field_data_field_no_of_employees} employee ON n.nid = employee.entity_id LEFT JOIN {field_data_field_office_floor} floor ON n.nid = floor.entity_id LEFT JOIN {field_data_field_opening_hours} openhr ON n.nid = openhr.entity_id LEFT JOIN {field_data_field_closing_hours} closehr ON n.nid = closehr.entity_id LEFT JOIN {field_data_field_parking_available} parking ON n.nid = parking.entity_id LEFT JOIN {field_data_field_cctv} cctv ON n.nid = cctv.entity_id LEFT JOIN {field_data_field_closing_days} closingdays ON n.nid = closingdays.entity_id LEFT JOIN {field_data_field_updated_by_mobile} synced ON n.nid = synced.entity_id LEFT JOIN {field_data_field_context} context ON n.nid = context.entity_id LEFT JOIN {field_data_field_edited_on_mobile} edited_mobile ON n.nid = edited_mobile.entity_id LEFT JOIN {field_data_field_location} loc ON n.nid = loc.entity_id LEFT JOIN {field_data_field_created_by} cr ON n.nid = cr.entity_id WHERE n.type = :type AND synced.field_updated_by_mobile_value = :sync AND cr.field_created_by_value = :created_by", array(
+					':type' => 'geo_tag',
+					':created_by' => $created_by,
+					//':fc_codes' => $access_codes,
+					':sync' => 'yes',
+				));
+				$branches = array();
+				foreach($branch_query as $record) {
+					$branches[$record->nid]['nid'] = $record->nid;
+					$branches[$record->nid]['fc_code'] = $record->title;
+					$branches[$record->nid]['fc_name']= $record->field_facility_name_value;
+					$branches[$record->nid]['address1'] = $record->field_address_1_value; //Unique ro_code
+					$branches[$record->nid]['address2'] = $record->field_address_2_value; //Unique ro_code
+					$branches[$record->nid]['city'] = $record->field_city_value;
+					$branches[$record->nid]['postal'] = $record->field_postal_code_value;
+					$branches[$record->nid]['state'] = $record->field_state_value;
+					$branches[$record->nid]['country'] = $record->field_country_value;
+					$branches[$record->nid]['phone'] = $record->field_phone_number_value;
+					$branches[$record->nid]['email']= $record->field_email_value;
+					$branches[$record->nid]['emp_no'] = $record->field_no_of_employees_value;
+					$branches[$record->nid]['floor'] = $record->field_office_floor_value;
+					$branches[$record->nid]['openhr'] = $record->field_opening_hours_value;
+					$branches[$record->nid]['closehr'] = $record->field_closing_hours_value;
+					$branches[$record->nid]['parking'] = $record->field_parking_available_value;
+					$branches[$record->nid]['cctv'] = $record->field_cctv_value;
+					$branches[$record->nid]['closedys'][] = $record->field_closing_days_value;
+					$branches[$record->nid]['synced'] = $record->field_updated_by_mobile_value;
+					$branches[$record->nid]['context'] = $record->field_context_value;
+					$branches[$record->nid]['edited_on_mobile'] = $record->field_edited_on_mobile_value;
+					$branches[$record->nid]['lat'] = $record->field_location_lat;
+					$branches[$record->nid]['long'] = $record->field_location_lng;
+					$branches[$record->nid]['created_by'] = $record->field_created_by_value;
+				}
+				$locations = array_values($branches);
+				return $locations;
+				//$locations = array($branches);
+				//dpm($locations);
+				//$franchise_cc = get_fr_cc_locations_test($branches, $created_by); // Calling utility function to get all franchise & cc against branch code
+				//dpm($franchise_cc);
+				//$total_locations = array_merge($branches, $franchise_cc); //Combing branches, frachise and cc
+}
+
+function get_fr_cc_locations_test($branch_locations, $created_by) {
+	foreach($branch_locations as $key => $branch_location) {
+		$br_codes[] = $branch_location['fc_code']; //Different branch code to search regions and cash collections
+	}
+	$query = db_query("SELECT n.title, n.nid, fc.field_facility_name_value, tloc.field_type_of_location_tid, email.field_email_value, add1.field_address_1_value, add2.field_address_2_value, city.field_city_value, state.field_state_value, postal.field_postal_code_value, country.field_country_value, phone.field_phone_number_value, employee.field_no_of_employees_value, floor.field_office_floor_value, openhr.field_opening_hours_value, closehr.field_closing_hours_value, parking.field_parking_available_value, cctv.field_cctv_value, closingdays.field_closing_days_value, synced.field_updated_by_mobile_value, context.field_context_value, edited_mobile.field_edited_on_mobile_value, loc.field_location_lat, loc.field_location_lng, cr.field_created_by_value FROM {node} n JOIN {field_data_field_facility_name} fc ON n.nid = fc.entity_id JOIN {field_data_field_reporting_office_code} roc ON n.nid = roc.entity_id LEFT JOIN {field_data_field_type_of_location} tloc ON n.nid = tloc.entity_id LEFT JOIN {field_data_field_email} email ON n.nid = email.entity_id LEFT JOIN {field_data_field_address_1} add1 ON n.nid = add1.entity_id LEFT JOIN {field_data_field_address_2} add2 ON n.nid = add2.entity_id LEFT JOIN {field_data_field_city} city ON n.nid = city.entity_id LEFT JOIN {field_data_field_state} state ON n.nid = state.entity_id LEFT JOIN {field_data_field_postal_code} postal ON n.nid = postal.entity_id LEFT JOIN {field_data_field_country} country ON n.nid = country.entity_id LEFT JOIN {field_data_field_phone_number} phone ON n.nid = phone.entity_id LEFT JOIN {field_data_field_no_of_employees} employee ON n.nid = employee.entity_id LEFT JOIN {field_data_field_office_floor} floor ON n.nid = floor.entity_id LEFT JOIN {field_data_field_opening_hours} openhr ON n.nid = openhr.entity_id LEFT JOIN {field_data_field_closing_hours} closehr ON n.nid = closehr.entity_id LEFT JOIN {field_data_field_parking_available} parking ON n.nid = parking.entity_id LEFT JOIN {field_data_field_cctv} cctv ON n.nid = cctv.entity_id LEFT JOIN {field_data_field_closing_days} closingdays ON n.nid = closingdays.entity_id LEFT JOIN {field_data_field_updated_by_mobile} synced ON n.nid = synced.entity_id LEFT JOIN {field_data_field_context} context ON n.nid = context.entity_id LEFT JOIN {field_data_field_edited_on_mobile} edited_mobile ON n.nid = edited_mobile.entity_id LEFT JOIN {field_data_field_location} loc ON n.nid = loc.entity_id LEFT JOIN {field_data_field_created_by} cr ON n.nid = cr.entity_id WHERE n.type = :type AND synced.field_updated_by_mobile_value = :sync AND cr.field_created_by_value = :created_by AND roc.field_reporting_office_code_value IN (:reporting_office_code)", array(
+        ':type' => 'geo_tag',
+        ':sync' => 'yes',
+        ':created_by' => $created_by,
+        ':reporting_office_code' => $br_codes,
+	));
+	$all_fr_cc = array();
+	foreach($query as $record) {
+		$all_fr_cc[$record->nid]['nid'] = $record->nid;
+		$all_fr_cc[$record->nid]['fc_code'] = $record->title;
+		$all_fr_cc[$record->nid]['fc_name']= $record->field_facility_name_value;
+		$all_fr_cc[$record->nid]['address1'] = $record->field_address_1_value; //Unique ro_code
+		$all_fr_cc[$record->nid]['address2'] = $record->field_address_2_value; //Unique ro_code
+		$all_fr_cc[$record->nid]['city'] = $record->field_city_value;
+		$all_fr_cc[$record->nid]['postal'] = $record->field_postal_code_value;
+		$all_fr_cc[$record->nid]['state'] = $record->field_state_value;
+		$all_fr_cc[$record->nid]['country'] = $record->field_country_value;
+		$all_fr_cc[$record->nid]['phone'] = $record->field_phone_number_value;
+		$all_fr_cc[$record->nid]['email']= $record->field_email_value;
+		$all_fr_cc[$record->nid]['emp_no'] = $record->field_no_of_employees_value;
+		$all_fr_cc[$record->nid]['floor'] = $record->field_office_floor_value;
+		$all_fr_cc[$record->nid]['openhr'] = $record->field_opening_hours_value;
+		$all_fr_cc[$record->nid]['closehr'] = $record->field_closing_hours_value;
+		$all_fr_cc[$record->nid]['parking'] = $record->field_parking_available_value;
+		$all_fr_cc[$record->nid]['cctv'] = $record->field_cctv_value;
+		$all_fr_cc[$record->nid]['closedys'][] = $record->field_closing_days_value;
+		$all_fr_cc[$record->nid]['synced'] = $record->field_updated_by_mobile_value;
+		$all_fr_cc[$record->nid]['context'] = $record->field_context_value;
+		$all_fr_cc[$record->nid]['edited_on_mobile'] = $record->field_edited_on_mobile_value;
+		$all_fr_cc[$record->nid]['lat'] = $record->field_location_lat;
+		$all_fr_cc[$record->nid]['long'] = $record->field_location_lng;
+		$all_fr_cc[$record->nid]['created_by'] = $record->field_created_by_value;
+		$fr_codes[] = $record->title;
+	}
+	dpm($all_fr_cc);
+	$all_cc = get_cc_from_fr_test($fr_codes, $created_by); // All cc against different franchise
+	$final_all_locations = array_merge($all_fr_cc, $all_cc); // Combing all fracnise & cc records with all cc records against franchise code
+	//return $final_all_locations;
+}
+
+function get_cc_from_fr_test($fr_codes, $created_by) { // Get all cc against franchise code
+	$query = db_query("SELECT n.title, n.nid, fc.field_facility_name_value, tloc.field_type_of_location_tid, email.field_email_value, add1.field_address_1_value, add2.field_address_2_value, city.field_city_value, state.field_state_value, postal.field_postal_code_value, country.field_country_value, phone.field_phone_number_value, employee.field_no_of_employees_value, floor.field_office_floor_value, openhr.field_opening_hours_value, closehr.field_closing_hours_value, parking.field_parking_available_value, cctv.field_cctv_value, closingdays.field_closing_days_value, synced.field_updated_by_mobile_value, context.field_context_value, edited_mobile.field_edited_on_mobile_value, loc.field_location_lat, loc.field_location_lng, cr.field_created_by_value FROM {node} n JOIN {field_data_field_facility_name} fc ON n.nid = fc.entity_id JOIN {field_data_field_reporting_office_code} roc ON n.nid = roc.entity_id LEFT JOIN {field_data_field_type_of_location} tloc ON n.nid = tloc.entity_id LEFT JOIN {field_data_field_email} email ON n.nid = email.entity_id LEFT JOIN {field_data_field_address_1} add1 ON n.nid = add1.entity_id LEFT JOIN {field_data_field_address_2} add2 ON n.nid = add2.entity_id LEFT JOIN {field_data_field_city} city ON n.nid = city.entity_id LEFT JOIN {field_data_field_state} state ON n.nid = state.entity_id LEFT JOIN {field_data_field_postal_code} postal ON n.nid = postal.entity_id LEFT JOIN {field_data_field_country} country ON n.nid = country.entity_id LEFT JOIN {field_data_field_phone_number} phone ON n.nid = phone.entity_id LEFT JOIN {field_data_field_no_of_employees} employee ON n.nid = employee.entity_id LEFT JOIN {field_data_field_office_floor} floor ON n.nid = floor.entity_id LEFT JOIN {field_data_field_opening_hours} openhr ON n.nid = openhr.entity_id LEFT JOIN {field_data_field_closing_hours} closehr ON n.nid = closehr.entity_id LEFT JOIN {field_data_field_parking_available} parking ON n.nid = parking.entity_id LEFT JOIN {field_data_field_cctv} cctv ON n.nid = cctv.entity_id LEFT JOIN {field_data_field_closing_days} closingdays ON n.nid = closingdays.entity_id LEFT JOIN {field_data_field_updated_by_mobile} synced ON n.nid = synced.entity_id LEFT JOIN {field_data_field_context} context ON n.nid = context.entity_id LEFT JOIN {field_data_field_edited_on_mobile} edited_mobile ON n.nid = edited_mobile.entity_id LEFT JOIN {field_data_field_location} loc ON n.nid = loc.entity_id LEFT JOIN {field_data_field_created_by} cr ON n.nid = cr.entity_id WHERE n.type = :type AND synced.field_updated_by_mobile_value = :sync AND cr.field_created_by_value = :created_by AND roc.field_reporting_office_code_value IN (:reporting_office_code)", array(
+        ':type' => 'geo_tag',
+        ':sync' => 'yes',
+        ':created_by' => $created_by,
+        ':reporting_office_code' => $fr_codes,
+	));
+	$cc_locations = array();
+	foreach($query as $record) {
+		$cc_locations[$record->nid]['nid'] = $record->nid;
+		$cc_locations[$record->nid]['fc_code'] = $record->title;
+		$cc_locations[$record->nid]['fc_name']= $record->field_facility_name_value;
+		$cc_locations[$record->nid]['address1'] = $record->field_address_1_value; //Unique ro_code
+		$cc_locations[$record->nid]['address2'] = $record->field_address_2_value; //Unique ro_code
+		$cc_locations[$record->nid]['city'] = $record->field_city_value;
+		$cc_locations[$record->nid]['postal'] = $record->field_postal_code_value;
+		$cc_locations[$record->nid]['state'] = $record->field_state_value;
+		$cc_locations[$record->nid]['country'] = $record->field_country_value;
+		$cc_locations[$record->nid]['phone'] = $record->field_phone_number_value;
+		$cc_locations[$record->nid]['email']= $record->field_email_value;
+		$cc_locations[$record->nid]['emp_no'] = $record->field_no_of_employees_value;
+		$cc_locations[$record->nid]['floor'] = $record->field_office_floor_value;
+		$cc_locations[$record->nid]['openhr'] = $record->field_opening_hours_value;
+		$cc_locations[$record->nid]['closehr'] = $record->field_closing_hours_value;
+		$cc_locations[$record->nid]['parking'] = $record->field_parking_available_value;
+		$cc_locations[$record->nid]['cctv'] = $record->field_cctv_value;
+		$cc_locations[$record->nid]['closedys'][] = $record->field_closing_days_value;
+		$cc_locations[$record->nid]['synced'] = $record->field_updated_by_mobile_value;
+		$cc_locations[$record->nid]['context'] = $record->field_context_value;
+		$cc_locations[$record->nid]['edited_on_mobile'] = $record->field_edited_on_mobile_value;
+		$cc_locations[$record->nid]['lat'] = $record->field_location_lat;
+		$cc_locations[$record->nid]['long'] = $record->field_location_lng;
+		$cc_locations[$record->nid]['created_by'] = $record->field_created_by_value;
+	}
+	dpm($cc_locations);
+	return $cc_locations;
+}

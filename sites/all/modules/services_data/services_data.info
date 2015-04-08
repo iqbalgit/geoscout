@@ -1,0 +1,4 @@
+name = Services Data
+description = "Services resource to create a node with image."
+core = 7.x
+

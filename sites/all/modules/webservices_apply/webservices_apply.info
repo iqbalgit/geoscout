@@ -1,0 +1,7 @@
+name = "Webservices Apply"
+description = "Different webservices implementation provided by DTDC"
+core = "7.x"
+package = "Custom"
+dependencies[] = services
+dependencies[] = file
+

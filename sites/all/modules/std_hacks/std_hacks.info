@@ -1,0 +1,4 @@
+name = "Standard Hacks"
+description = "Custom module to make code level changes"
+core = "7.x"
+package = "Custom"

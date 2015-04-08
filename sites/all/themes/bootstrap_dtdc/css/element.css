@@ -1,0 +1,729 @@
+@font-face {
+        font-family: "Aller";
+        src: url('../fonts/825012208-Aller_Rg.eot');
+        src: url('../fonts/825012208-Aller_Rg.eot?#iefix') format('embedded-opentype'),
+        url('../fonts/825012208-Aller_Rg.svg#Aller') format('svg'),
+        url('../fonts/825012208-Aller_Rg.woff') format('woff'),
+        url('../fonts/825012208-Aller_Rg.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+}
+
+@font-face {
+        font-family: "Aller Light";
+        src: url('../fonts/53375245-Aller_Lt.eot');
+        src: url('../fonts/53375245-Aller_Lt.eot?#iefix') format('embedded-opentype'),
+        url('../fonts/53375245-Aller_Lt.svg#Aller Light') format('svg'),
+        url('../fonts/53375245-Aller_Lt.woff') format('woff'),
+        url('../fonts/53375245-Aller_Lt.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+}
+
+body{
+font-family: "Aller Light";
+direction: ltr;
+background: rgb(242, 242, 242);
+}
+
+.main-container{
+background: #fff;
+padding: 0px 20px;
+}
+
+.menu{
+   float: left;
+    height: 20px;
+    margin-top: 18px;
+    width: 106px;
+}
+
+
+.page-header{
+margin-top: 0;
+background: #8E8E8E;
+color: #fff;
+padding: 10px 15px;
+margin: 0px -20px 30px;
+font-size: 20px;
+}
+
+.menu span{
+	background: none repeat scroll 0 0 #fff;
+    border-radius: 5px;
+    float: left;
+    height: 4px;
+    margin-bottom: 7px;
+    width: 32px;
+}
+
+
+.main-container .tabs--primary{
+border-bottom: solid 1px #1FA8D0;
+border-left: solid 1px #1FA8D0;
+}
+
+.main-container .tabs--primary>li a{
+padding: 10px 45px;
+border-radius: 0px 0px 0px 0px;
+margin-right: 0px;
+border-bottom: solid 1px #1FA8D0;
+border-right: solid 1px #1FA8D0;
+border-top: 1px solid;
+font-size: 20px;
+}
+
+.main-container .tabs--primary>li.active>a, .main-container .tabs--primary>li.active>a:hover, .main-container .tabs--primary>li.active>a:focus {
+color: #FFF;
+cursor: default;
+background-color: #1FA8D0;
+border: 1px solid #1FA8D0;
+border-bottom-color: transparent;
+}
+
+/*.main-container .tabs--primary>li:nth-child(3),*/ .form-type-managed-file{ display:none;}
+
+.menu p{
+	font-size:18px;
+	color:#fff;
+}
+
+.banner{
+width: 100%;
+float: left;
+background: url(../img/banner-bg.jpg);
+height: 668px;
+overflow: hidden;
+text-align: center;
+}
+
+.header{
+border-bottom: 1px solid #FFF;
+padding-bottom: 7px;
+width: 100%;
+background: none repeat scroll 0% 0% #FFFFFF;
+border-bottom: solid 1px #F0F0F0;
+}
+
+.main_container{ width:100%; float:left; background-color:#fff; text-align:center; padding:50px 0px;}
+
+.clear-both{ padding:0px;}
+
+.clear-left{ padding-left:0px;}
+
+.clear-right{ padding-right:0px;}
+
+.apps{
+	float: left;
+    margin-left: 40px;
+    margin-top: 6px;
+    width: 130px;
+}
+
+.menu b{
+	float: left;
+    width: 42px;
+}
+
+.apps img{
+	width:100%;
+}
+
+.logo{
+padding-top: 10px;
+float:left;
+}
+
+.lead{
+margin: 35px 10px 10px;
+float: left;
+font-size: 30px;
+color: #E20000;
+font-weight: 400;
+}
+
+.links{
+float: right;
+margin: 15px 0px 5px;
+}
+
+.links a{
+border: 2px solid #44D4E7;
+border-radius: 5px;
+color: #FFF;
+font-size: 14px;
+padding: 5px 20px;
+text-transform: uppercase;
+background: #81D5ED;
+}
+
+.feature-block{
+	width:100%;
+	float:left;
+	background-image: -o-linear-gradient(bottom, #030303 0%, #373737 100%);
+	background-image: -moz-linear-gradient(bottom, #030303 0%, #373737 100%);
+	background-image: -webkit-linear-gradient(bottom, #030303 0%, #373737 100%);
+	background-image: -ms-linear-gradient(bottom, #030303 0%, #373737 100%);
+	background-image: linear-gradient(to bottom, #030303 0%, #373737 100%);
+}
+
+.feature-wrapper p{
+	text-align:center;
+	color:#fff;
+	font-size:18px;
+}
+
+.feature-block .col-md-4{
+	color: #fff;
+    font-size: 18px;
+    padding: 30px 90px;
+    text-align: center;
+}
+
+.vendor-reg-block{
+background: none repeat scroll 0 0 #f0f0f0;
+float: left;
+text-align: center;
+width: 100%;
+padding: 30px 0px;
+}
+
+.footer-block{
+background-image: -o-linear-gradient(to bottom, #7C0000 0%, #B50000 100%);
+background-image: -moz-linear-gradient(to bottom, #7C0000 0%, #B50000 100%);
+background-image: -webkit-linear-gradient(to bottom, #7C0000 0%, #B50000 100%);
+background-image: -ms-linear-gradient(to bottom, #7C0000 0%, #B50000 100%);
+background-image: linear-gradient(to bottom, #E44C4C 0%, #e94d4d 100%);
+width: 100%;
+float: left;
+text-align: center;
+color: #fff;
+padding-bottom: 30px;
+}
+
+.download-block{
+border-bottom: 1px solid #C24A4A;
+border-top: 1px solid #E4E4E4;
+font-size: 24px;
+margin-bottom: 16px;
+padding: 25px;
+text-align: center;
+color: #FFFFFF;
+}
+
+.download-block span{
+	width: 184px;
+display: inline-table;
+margin-top: 0px;
+position: relative;
+top: -10px;
+margin-left: 30px;
+}
+
+.responsive-menus.responsified span.toggler{
+	background: rgba(51, 51, 51, 0) !important;
+	box-shadow: 0px 0px 0px #000 !important; 
+}
+
+.responsive-menus.responsified .responsive-menus-simple{
+	background: #050505;
+	}
+
+.responsive-menus-simple{
+	width: 270px !important;
+	margin-top: 26px !important;
+	box-shadow: none !important;
+}
+
+.responsive-menus.responsified.responsive-toggled span.toggler{
+border-bottom:0px solid #eee;
+}
+
+.form-item-field-phone-number-und-0-value{
+width:100% !important;
+}
+
+.responsive-menus.responsified{
+	width: 28% !important;
+	float: left !important;
+	margin-top: 14px !important;
+}
+
+.download-block span img{
+	width:100%;
+}
+
+#edit-actions #edit-submit{
+    background: none repeat scroll 0% 0% #0024BF;
+    border: 1px solid #282AF8;
+    padding: 7px 50px;
+    font-size: 18px;
+    text-transform: uppercase;
+    color: #FFF;
+    margin-bottom: 5px;
+}
+
+
+ #edit-actions a{
+    background: none repeat scroll 0% 0% rgb(233, 77, 77);
+    border: 1px solid rgb(233, 77, 77);
+    padding: 9px 50px;
+    font-size: 18px;
+    text-transform: uppercase;
+    color: #FFF;
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+
+
+.social-media-links img{
+margin: 0px 10px 20px;
+}
+
+.chosen-container{
+display: block;
+width: 100%!important;
+height: 34px!important;
+padding: 6px 2px!important;}
+
+.header-wrapper{
+width: 100%;
+background: #ff9e23;
+min-height: 68px;
+}
+
+#addressfield-wrapper .street-block, #addressfield-wrapper .locality-block{ display:none;}
+
+#addressfield-wrapper .form-group {
+margin-bottom: 0px;
+}
+
+
+@media (min-width: 200px) and (max-width: 600px) {
+  .feature-wrapper{
+    margin: 0px auto auto;
+    width: 100%;
+}
+
+.feature-wrapper h1{
+	text-align:center;
+	color:#fff;
+	font-size:24px;
+}
+
+.header-wrapper {
+min-height: 134px;
+}
+
+.feature-block .col-md-4 {
+color: #fff;
+font-size: 18px;
+padding: 10px 0px 20px;
+text-align: center;
+margin-top: 10px;
+background: #1B1B1B;
+}
+
+.vendor-wrapper label {
+width: 100%;
+text-align: left;
+}
+
+.vendor-wrapper h1 {
+font-size: 24px;
+}
+
+.footer-wrapper h1 {
+color: #fff;
+font-size: 14px;
+line-height: 18px;
+}
+
+div.autocomplete-map {
+margin-top: 20px;
+clear: both;
+width: 100%!important;
+height: 200px!important;
+}
+
+.banner object{ display:none;}
+
+.banner {
+width: 100%;
+float: left;
+background: url(../img/banner-bg.jpg);
+height: 150px;
+overflow: hidden;
+text-align: center;
+}
+
+.apps {
+float: left;
+margin-left: 10px;
+margin-top: 12px;
+width: 110px;
+}
+
+.links a {
+border: 1px solid #FFB644;
+padding: 5px 10px;
+}
+
+.links{
+float: right;
+margin-top: -100px;
+}
+
+.logo{
+text-align: center;
+border-top: solid 1px #FFBC2A;
+width: 100%;
+margin-top: 60px;
+}
+
+}
+
+@media (min-width: 1024px){
+ .feature-wrapper{
+    margin: 100px auto auto;
+    width: 70%;
+}
+
+#field-vendor-address-add-more-wrapper{
+height:321px;
+}
+
+.vendor-reg-block .sdf, .vendor-reg-block  .form-type-textfield,.vendor-reg-block .field-name-field-phone-number, .field-name-field-category, .node-vendor_information-form .form-type-textfield, .node-vendor_information-form .field-name-field-phone-number{
+width:50%;
+text-align:left;
+float:left;
+clear:both;}
+
+
+/*.vendor-wrapper .col-md-12{
+	width: 80%;
+	margin:auto;
+}*/
+
+.field-location-add-more-wrapper .form-type-textfield{ float:left; width:70%;}
+
+.geolocation-address-geocode, .geolocation-client-location{
+background-color: #96BC44;
+color: #FFF;
+padding: 9px 10px 7px 10px;
+cursor: pointer;
+margin: 2px 0 0 4px;
+line-height: 35px;
+}
+
+.footer-wrapper h1{
+color: #fff;
+font-size: 17px;
+padding: 30px 105px;
+text-align: center;
+line-height: 24px;
+}
+
+
+#addressfield-autocomplete-map{
+width: 525px !important;
+height: 266px !important;
+left: 600px !important;
+border: solid 1px #FFF;
+position: absolute!important;
+margin-top: 44px;
+}
+
+.addressfield-autocomplete-link{
+position: absolute;
+left: 600px;
+display: none;
+width: 46.1%;
+background: #fff;
+margin-top: 24px;
+}
+
+.vendor-reg-block #addressfield-wrapper{
+position: absolute;
+left: 600px;
+top: 26px;
+width: 46.1%;
+background: #fff;
+}
+
+.form-actions {
+clear: both;
+text-align: center;
+}
+
+#addressfield-wrapper {
+position: absolute;
+left: 600px;
+top: 107px;
+width: 46.1%;
+background: #fff;
+}
+
+}
+
+
+.view-filters{
+padding: 30px 0px 20px;
+}
+
+.table {
+width: 100%;
+margin-bottom: 20px;
+border: solid 1px #ddd;
+}
+
+.table>thead>tr>th{
+vertical-align: middle;
+background: #F2F2F2;
+border-right: solid 1px #ddd;
+}
+
+.table>tbody>tr>td {
+vertical-align: middle;
+border-right: solid 1px #ddd;
+}
+
+.geo-tag-block .field-type-text, .geo-tag-block .field-type-list-text, .geo-tag-block .field-type-number-integer, .geo-tag-block .field-type-list-integer{
+margin: 2px 8px 2px 0px;
+float: left;
+width: 49%;
+border-bottom: solid 1px #E8E8E8;
+}
+
+.geo-tag-block .field-type-text-with-summary{ margin-top:10px; width:100%; float:left;}
+
+.geo-tag-block .field-name-field-location{
+margin-top: 15px;
+width: 100%;
+float: left;
+}
+
+.geo-tag-block .field-type-text-with-summary .field-label, .geo-tag-block .field-type-text-with-summary .field-items{
+padding: 12px;
+float: left;
+width: 100%!important;}
+
+.geo-tag-block .field .field-label{
+font-weight: bold;
+width: 39%;
+float: left;
+padding: 12px 10px;
+background: #E0F5F4;
+border-left: solid 2px #5BC0DE;
+}
+
+.geo-tag-block .field-items{
+padding: 12px;
+float: left;
+width: 61%;
+background: #FAFAFA;
+}
+
+.field-name-field-geo-image{ margin-bottom:0px;}
+
+.geo-tag-block .field-type-geolocation-latlng .field-label, .geo-tag-block .field-type-geolocation-latlng .field-items, .geo-tag-block .field-name-field-geo-image .field-label, .geo-tag-block .field-name-field-geo-image .field-items{
+width: 100%;}
+
+.field-name-field-geo-image .field-items, .field-name-field-location .field-items{ padding:0px;}
+
+.field-name-field-geo-image .field-item{
+width: 32%;
+float: left;
+margin: 5px 1px 5px 2px;
+border: solid 4px #DDDBBF;
+height: 90px;
+overflow: hidden;
+}
+
+.field-name-field-closing-days .field-item{
+float: left;
+margin-right: 5px;
+background: #103AA8;
+color: #fff;
+padding: 0px 10px;
+}
+
+.field-name-field-geo-image .field-item img{
+width: 100%;
+height: 100%;
+}
+
+.dtdc_geotag_form .form-item input{}
+
+.table > tbody > tr > td {
+    vertical-align: middle;
+    border-right: 1px solid #DDD;
+}
+
+.dtdc_geotag_form table th {
+border-width: 0px;
+border-style: solid 0px; 
+border-color: #bebfb9;
+padding: 8px 10px; 
+}
+
+.dtdc_geotag_form table{
+border: 0px solid #bebfb9;
+margin-top: 10px;
+}
+
+.dtdc_geotag_form table th {
+border-style: solid;
+border-color: #bebfb9;
+padding: 3px 10px;
+}
+
+.dtdc_geotag_form fieldset{
+    border: 0px solid #CCC;
+    padding: 0em 0px 0px;
+    position: relative;
+    margin: 0em 0px;
+}
+
+.dtdc_geotag_form .panel-heading {
+    color: #333;
+    background-color: #FFF;
+    border-color: #FFF;
+	padding: 0px 0px;
+	border-bottom: 0px solid transparent;
+}
+
+/*.dtdc_geotag_form .no-image{
+	background:url(../img/no-image.png) no-repeat center;
+}*/
+
+.field-name-field-geo-image .panel-body{
+clear: both;
+min-height: 400px;
+padding: 0px 0px 10px 0px;
+}
+
+#edit-field-geo-image-und-table tr.even{
+background: #fff;
+}
+
+.dtdc_geotag_form .table > thead > tr > th, .table > tbody > tr > td{
+border-right: 0px solid #DDD;
+border-top: 0px solid #DDD;
+padding-top: 30px;
+padding-bottom: 16px;
+}
+
+.dtdc_geotag_form .panel {
+    box-shadow: 0px 0px 0px rgba(0, 0, 0, 0.05);
+}
+
+.dtdc_geotag_form .geolocation-address .form-type-textfield {
+float: left;
+width: 77%;
+margin-right: 8px;
+}
+
+.dtdc_geotag_form .geolocation-address label{
+width: 100%;
+}
+
+.dtdc_geotag_form .geolocation-client-location, .dtdc_geotag_form .geolocation-remove, /*.dtdc_geotag_form .geolocation-address,*/ .dtdc_geotag_form .group-address .panel-title, .dtdc_geotag_form .geolocation-help, .dtdc_geotag_form .tabledrag-toggle-weight-wrapper{ display:none;}
+
+fieldset .panel-heading a.panel-title {
+    color: inherit;
+    display: block;
+    margin: 0px -15px;
+    padding: 20px 15px;
+}
+
+.view-test-view table tr.even{
+background: #F5F5F5;
+border-top: solid 1px #E2E2E2;
+border-bottom: solid 1px #E2E2E2;
+}
+
+#user-login{
+width: 500px;
+margin: 20px auto;
+background: #F4F4F4;
+padding: 40px;
+border-radius: 10px;
+border: solid 1px #E5E5E5;
+box-shadow: 4px 4px 0px #333;
+}
+
+#user-login input{
+height: 45px;
+}
+
+#user-login #edit-submit{
+width: auto;
+color: #fff;
+background: #016EB0;
+padding: 8px 40px;
+margin: auto;
+font-size: 20px;
+border: solid 1px #016EB0;
+}
+
+#geo-tag-node-form{ margin-top:30px;}
+
+.field-name-field-shop-area, .field-name-field-pudo-storage-space{ font-weight:bold;}
+
+.field-name-field-shop-area input, .field-name-field-pudo-storage-space input{
+width: 84%;
+display: inline-block;
+margin-right: 5px;
+font-weight: normal;
+}
+
+.gray-bg{
+background: #FFFFFF;
+padding: 15px;
+border: solid 16px #F5F5F5;
+margin-bottom: 30px;
+}
+
+.min-height{
+min-height: 588px;
+}
+
+.geolocation-map{ margin:0px;}
+
+.geolocation-lat-item, .geolocation-lng-item{
+margin-top: 10px;
+background: #39C8E2;
+padding: 10px;
+color: #fff;
+}
+
+.field-type-geolocation-latlng{ margin-bottom:0px;}
+
+.geolocation-lat-item{
+margin-right: 0.6em;
+float: left;
+}
+
+.geolocation-lng-item {
+margin-right: 0em;
+margin-left:0.5em;
+float:right;
+}
+
+.geolocation-lat-item .form-group, .geolocation-lng-item .form-group{
+margin-bottom: 0px;
+}
+
+
+/*.dtdc_geotag_form .field-type-text, .dtdc_geotag_form .field-type-number-integer, .dtdc_geotag_form .field-type-list-text, .dtdc_geotag_form .field-type-list-integer, .dtdc_geotag_form .field-type-text-with-summary{
+    width: 50%;
+    float: left;
+    padding: 0px 15px;
+}
+#edit-field-parking-available{
+    height: 130px;
+}*/
+
+
+.

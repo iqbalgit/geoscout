@@ -1,0 +1,408 @@
+<?php
+/**
+ * Implements of hook_services_resources().
+ */
+
+function webservices_apply_services_resources() {
+  $api = array(
+    'fileattach' => array(
+      'operations' => array(
+        'retrieve' => array(
+          'help' => 'Using GET to attach file to node',
+          'callback' => '_fileattachservice_node_retrieve',
+          'access callback' => 'user_access',
+          'access arguments' => array('attach file to node'),
+          //'access arguments' => array('attach file to node'),
+          'access arguments append' => FALSE,
+          'args' => array(
+            array(
+              'name' => 'nid',
+              'type' => 'int',
+              'description' => 'Node Id',
+              'source' => array('param' => 'nid'),
+              'optional' => TRUE,
+              'default' => '0',
+            ),
+            array(
+              'name' => 'fid',
+              'type' => 'int',
+              'description' => 'File id fid',
+              'source' => array('param' => 'fid'),
+              'optional' => TRUE,
+              'default' => '0',
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  return $api;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function webservices_apply_permission() {
+  return array(
+    'attach file to node' =>  array(
+      'title' => t('attach file to node'),
+      'description' => t('attach file to node - with services '),
+    ),
+  );
+}
+
+/**
+ * Callback function for the  retrieve
+ */
+function _fileattachservice_node_retrieve($nid, $fid) {
+	watchdog('webservices_apply', check_plain(print_r($nid, true)));
+	$array=array();
+	// Check for mad values
+	$nid = intval($nid);
+	$fid = intval($fid);
+	if(!isset($field)) {
+		//defaults to field_image
+		$field ="field_geo_image";
+	}
+	if(isset($nid) && !$nid==0) {
+		$array['nid']= "$nid";
+		$nodeset = true;
+	}
+	else {
+		$nodeset = false;
+	}
+	if(isset($fid) && !$fid==0) {
+		$array['fid']="$fid";
+		$fileset = true;
+	}
+	else {
+		$fileset=false;
+	}
+	if(isset($field)) {
+		$array['field']=$field;
+	}
+	$node = node_load($nid); // load the node object
+    //$file = file_load($fid);
+    $count = count($node->field_image['und']);
+    if(!$count==0) {
+		$fids_array = array();
+        foreach($node->field_image['und'] as $value){
+                $fids_array[]=$value['fid'];
+		}
+        $fids_array;
+        if(in_array($fid, $fids_array)) {
+			$array['result']="false";
+			$array['error']="that image allready exists on this node";
+		}
+		else {
+			//yep save
+			$node->field_image[LANGUAGE_NONE][] = array(
+				'fid' => $fid,
+				'display' => 1,
+				'description' => '',
+			);
+			node_save($node);
+			$array['result']="true";
+		}
+	}
+	else {
+		//HOW IN THE HELL DO YOU MAKE THE FIELD_IMAGE Dynamic ?
+		$node->field_image['und'][] = array(
+			'fid' => $fid,
+			'display' => 1,
+			'description' => '',
+		);
+		node_save($node);
+		$array['result']="true";
+	}
+}
+function webservices_apply_menu(){
+	$items = array();
+	$items['login/auth'] = array(
+		'title' => 'Approver Login',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('employee_login_auth'),
+		'access callback' => TRUE,
+	);
+	$items['attach/image'] = array(
+		'title' => 'Attach image',
+		'page callback' => 'attach_image_to_node',
+		'access callback' => TRUE,
+		'delivery callback' => 'drupal_json_output',
+	);
+	return $items;
+}
+
+function attach_image_to_node() {
+	$nid = $_REQUEST['nid'];
+	$fid = $_REQUEST['fid'];
+	$facility_code = $_REQUEST['fcode'];
+	$array=array();
+	// Check for mad values
+	$nid = intval($nid);
+	$fid = intval($fid);
+	if(!isset($field)) {
+		//defaults to field_image
+		$field ="field_geo_image";
+	}
+	if(isset($nid) && !$nid==0) {
+		$array['nid']= "$nid";
+		$nodeset = true;
+	}
+	else {
+		$nodeset = false;
+	}
+	if(isset($fid) && !$fid==0) {
+		$array['fid']="$fid";
+		$fileset = true;
+	}
+	else {
+		$fileset=false;
+	}
+	if(isset($field)) {
+		$array['field']=$field;
+	}
+	$node = node_load($nid); // load the node object
+    //$file = file_load($fid);
+    $count = count($node->field_geo_image['und']);
+    if(!$count==0) {
+		$fids_array = array();
+        foreach($node->field_geo_image['und'] as $value){
+                $fids_array[]=$value['fid'];
+		}
+        $fids_array;
+        if(in_array($fid, $fids_array)) {
+			$array['result']="false";
+			$array['error']="that image allready exists on this node";
+		}
+		else {
+			//yep save
+			$node->field_geo_image['und'][] = array(
+				'fid' => $fid,
+				'display' => 1,
+				'description' => '',
+			);
+			node_save($node);
+			$array['result']="true";
+		}
+	}
+	else {
+		//HOW IN THE HELL DO YOU MAKE THE FIELD_IMAGE Dynamic ?
+		$node->field_geo_image['und'][] = array(
+			'fid' => $fid,
+			'display' => 1,
+			'description' => '',
+		);
+		node_save($node);
+		$array['result']="true";
+	}
+	//dpm($array);
+	return $array;
+}
+/*function webservices_apply_block_info() {
+	$blocks = array();
+	$blocks['login'] = array(
+		'info' => t('Employee Login'),
+	);
+	return $blocks;
+}
+
+function webservices_apply_block_view($delta = '') {
+	global $user;
+	$block = array();
+	switch($delta) {
+		case 'login':
+			if (!$user->uid && !(arg(0) == 'user' && !is_numeric(arg(1)))) {
+				$block['subject'] = t('Employee login');
+				$block['content'] = drupal_get_form('employee_login_block');
+			}
+	}
+	return $block;
+}*/
+
+//Employee login form
+function employee_login_auth($form) {
+	//$form['#action'] = url(current_path(), array('query' => drupal_get_destination(), 'external' => FALSE));
+	//$form['#id'] = 'employee-login-auth';
+	//$form['#validate'] = employee_login_default_validators();
+	//$form['#submit'][] = 'employee_login_auth_submit';
+	$form['intro_text'] = array(
+		'#markup' => '<p>Please use your intranet login & password to login</p>',	
+	);
+	$form['name'] = array(
+		'#type' => 'textfield',
+		'#maxlength' => USERNAME_MAX_LENGTH,
+		'#size' => 15,
+		'#required' => TRUE,
+		'#attributes' =>array('placeholder' => t('Employee Id'))
+	);
+	$form['pass'] = array(
+		'#type' => 'password',
+		'#size' => 15,
+		'#required' => TRUE,
+		'#attributes' =>array('placeholder' => t('Password'))
+	);
+	$form['actions'] = array('#type' => 'actions');
+	$form['actions']['submit'] = array(
+		'#type' => 'submit',
+		'#value' => t('Log in'),
+	);
+	$items = array();
+  //if (variable_get('user_register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL)) {
+    //$items[] = l(t('Create new account'), 'user/register', array('attributes' => array('title' => t('Create a new user account.'))));
+  //}
+  //$items[] = l(t('Request new password'), 'user/password', array('attributes' => array('title' => t('Request new password via e-mail.'))));
+  //$form['links'] = array('#markup' => theme('item_list', array('items' => $items)));
+  return $form;
+}
+
+function employee_login_auth_submit($form, &$form_state) {
+	global $user;
+	global $base_url;
+	$password = trim($form_state['values']['pass']);
+	$username = trim($form_state['values']['name']);
+	if(!empty($form_state['values']['name']) && !empty($password)) {
+		$account = db_query("SELECT * FROM {users} WHERE name = :name AND status = 1", array(':name' => $form_state['values']['name']))->fetchObject();
+		if($account){
+			$json_response = _login_webservice_call($username, $password);
+			$status = $json_response['STATUS'];
+			if(isset($status) && $status == 1){
+				$accountresult = db_query("SELECT uid FROM {users} WHERE name = :name AND status = 1", array(':name' => $form_state['values']['name']))->fetchObject();
+				$authid = $accountresult->uid;
+				//$authid = user_authenticate($form_state['values']['name'], $password);
+			}
+			if(isset($authid) && $authid > 0){
+				$userdetails = user_load($authid);
+			}
+			if(isset($userdetails->roles[4]) && $userdetails->roles[4] == 'Approver'){
+				$form_state['uid'] = $userdetails->uid;
+			} 
+			else{
+				drupal_set_message("Invalid Username and Password","error");
+				//drupal_goto($base_url);
+			}
+		}
+		else {
+			$json_response = _login_webservice_call($username, $password);
+			if(isset($json_response) && $json_response['REMARKS'] == "Success") {
+				$user_name = $json_response['LGNID'];	
+				$emp_type = $json_response['EMPTYPE'];
+				$access_type = $json_response['ACCSTYPE']; //Access type: 1-Zonal access, 2-Regional access, 3-Branch access 
+				$accesscode = $json_response['ACCCODE']; //Access code: Branch code(B),Region code(A)
+				$remarks = $json_response['REMARKS']; // Success/fail
+				$status = $json_response['STATUS']; // 1- Sucess, 0- Fail
+				$firstname = $json_response['NAME']; // Name of employee
+				$email = 'test@test.com';
+				$approver = $json_response['APPROVER']['entry']['value']; // 1-Approver, 0-not approver
+			}
+			if(isset($emp_type) && $emp_type = "EM" && $remarks = "Success") {
+				$newUser = array(
+				'name' => $user_name,
+				'pass' => $password,
+				'mail' => $email,
+				'status' => 1,
+				'init' => "",
+				//'field_name' => array(LANGUAGE_NONE => array(array('value' => $firstname))), 
+				//'field_zone' => array(LANGUAGE_NONE => array(array('value' => $zone))), 
+				'access' => REQUEST_TIME,
+				'roles' => array(
+					DRUPAL_AUTHENTICATED_RID => 'Approver',),
+				);
+				user_save(null, $newUser);
+			}
+			else {
+				//dpm($json_response);
+				drupal_set_message("Invalid username and password","error");
+			}
+			$newlogin = db_query("SELECT * FROM {users} WHERE name = :name AND status = 1", array(':name' => $form_state['values']['name']))->fetchObject();
+			if(isset($newlogin->uid)){
+				$userid = $newlogin->uid;
+				if(isset($userid)){
+					$user = user_load($userid);
+					if(!isset($user->roles[4])) {
+						$user->roles[4] = 'Approver';
+					}
+					$edit = array('roles' => $user->roles);
+					user_save($user, $edit);
+					$form_state['uid'] = $newlogin->uid;	
+				}
+				else {
+					drupal_set_message("Invalid Username and Password");
+					//drupal_goto($base_url);
+					form_set_error('name', t('Sorry, unrecognized username or password. <a href="@password">Have you forgotten your password?</a>', array('@password' => url('user/password', array('query' => array('name' => $form_state['values']['name']))))));
+					watchdog('user', 'Login attempt failed for %user.', array('%user' => $form_state['values']['name']));
+				}
+			}
+		}
+	}
+	if(isset($form_state['uid'])) {
+		$user = user_load($form_state['uid']);
+		//$form_state['redirect'] = 'user/' . $user->uid;
+		$form_state['redirect'] = 'location-view';
+		user_login_finalize($form_state);
+	}
+}
+function employee_login_default_validators() {
+	dpm("test");
+	return array('employee_login_authenticate_validate');
+}
+function employee_login_authenticate_validate($form, &$form_state) {
+	global $base_url;
+	$password = trim($form_state['values']['pass']);
+	$username = trim($form_state['values']['name']);
+	if(!empty($form_state['values']['name']) && !empty($password)) {
+		dpm($username);
+		dpm($password);
+	} 
+	else {
+		drupal_set_message("Invalid username and password","error");
+		drupal_goto($base_url);
+	}
+}
+
+function _login_webservice_call($username, $password) {
+	$login_auth_url = 'http://27.251.199.12:8084/geotag/rest/dtdc/getdlogin?username='.$username.'&password='.$password;
+	$response = drupal_http_request($login_auth_url);
+	$json_response = json_decode($response->data, true);
+	return $json_response;
+}
+
+
+function webservices_apply_views_query_alter(&$view, &$query) {
+ if ($view->name == 'test_view') {
+   $query->where[0]['type'] = 'OR';
+ }
+ if ($view->name == 'dummy_view') {
+   $query->where[0]['type'] = 'OR';
+ }
+}
+
+function webservices_apply_views_pre_execute(&$view) {
+	if ($view->name == 'test_view') {
+		$query = &$view->build_info['query'];
+		$result = $query->execute()->fetchAll();
+		$title = array();
+		foreach($result as $row){
+			$title[] = $row->node_title;
+		}
+	}
+}
+function webservices_apply_field_widget_form_alter(&$element, &$form_state, $context) {
+  // Replace field_MYFIELD with your field name
+  if ($context['field']['field_name'] == 'field_geo_image') {
+    // Loop through the element children
+    foreach (element_children($element) as $key => $child) {
+      // Add the new process function to the element
+      $element[$key]['#process'][] = 'webservices_apply_image_field_widget_process';
+    }
+  }
+}
+
+function webservices_apply_image_field_widget_process($element, &$form_state, $form) {
+  // Change the title field label and description
+  $element['alt']['#title'] = 'Effect';
+  $element['alt']['#description'] = '';
+
+  // Return the altered element
+  return $element;
+}
